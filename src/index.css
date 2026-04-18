@@ -4,16 +4,76 @@
 
 @layer base {
   body {
-    @apply bg-mhw-bg text-mhw-text font-hud;
+    @apply bg-surface-lowest text-on-surface font-manrope antialiased;
+    background-image: 
+      radial-gradient(circle at 0% 0%, rgba(245,158,11,0.03) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(5,102,217,0.02) 0%, transparent 50%);
   }
 }
 
 @layer components {
-  .mhw-panel {
-    @apply bg-mhw-panel border border-mhw-accent/30 rounded-lg p-4 shadow-lg;
+  /* No-Line Surface Architecture */
+  .kinetic-surface-low {
+    @apply bg-surface-low rounded-dashboard transition-all duration-300;
   }
   
+  .kinetic-surface-mid {
+    @apply bg-surface-container rounded-dashboard transition-all duration-300;
+  }
+  
+  .kinetic-surface-high {
+    @apply bg-surface-high rounded-dashboard transition-all duration-300;
+  }
+
+  .kinetic-glass {
+    @apply bg-surface-container/60 backdrop-blur-xl rounded-dashboard;
+    /* Ambient Illumination instead of borders */
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255,255,255,0.05),
+      0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  /* Typography: The Editorial Edge */
+  .font-space-tech {
+    font-family: 'Space Grotesk', sans-serif;
+    @apply tracking-tight-eng;
+  }
+
+  .font-label-tech {
+    font-family: 'Space Grotesk', sans-serif;
+    @apply uppercase tracking-wide-tech text-[10px] font-bold;
+  }
+
+  /* Signature Textures */
+  .liquid-neon {
+    @apply bg-gradient-to-br from-kinetic-amber via-kinetic-amber-deep to-kinetic-amber-deep bg-clip-text text-transparent;
+    filter: drop-shadow(0 0 8px rgba(245,158,11,0.3));
+  }
+
+  .liquid-neon-btn {
+    @apply bg-gradient-to-br from-kinetic-amber to-kinetic-amber-deep font-black text-black shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all active:scale-95;
+  }
+
+  /* Micro-Glows & Accents */
+  .neon-underline {
+    @apply relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-kinetic-amber after:shadow-[0_0_10px_#ffc174];
+  }
+
+  @keyframes scan {
+    0% { top: 0% }
+    100% { top: 100% }
+  }
+
+  .animate-scan {
+    animation: scan 3s linear infinite;
+  }
+
+  .ghost-border {
+    /* Use outline-variant at 15% opacity as fallback */
+    @apply border border-kinetic-outline-variant/15;
+  }
+
   .mhw-button {
-    @apply px-4 py-2 bg-mhw-accent text-mhw-bg font-bold rounded hover:brightness-110 active:scale-95 transition-all;
+    @apply px-4 py-2 bg-kinetic-amber text-black font-black rounded-tech hover:brightness-110 active:scale-95 transition-all;
   }
 }

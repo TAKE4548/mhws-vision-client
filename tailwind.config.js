@@ -7,35 +7,47 @@ export default {
   theme: {
     extend: {
       colors: {
-        'mhw-bg': '#0a0b0d',          // 背景（ほぼ黒）
-        'mhw-panel': '#1a1c21',       // パネル
-        'mhw-accent': '#c9a063',      // ゴールドアクセント
-        'mhw-text': '#e0e0e0',        // テキスト
-        'mhw-danger': '#aa3333',      // NG/Error
-        'mhw-success': '#4a9990',     // OK/Valid
+        // MHW Style HUD (Existing)
+        'mhw-bg': '#0a0b0d',
+        'mhw-panel': '#1a1c1e',
+        'mhw-accent': '#cac080',
+        'mhw-text': '#e1e2e7',
+        'mhw-success': '#78a678',
+        'mhw-danger': '#aa3333',
+        
+        // The Kinetic Observatory (Design Strategy REQ-006)
+        'kinetic-amber': '#ffc174', // Primary / Surface Tint
+        'kinetic-amber-deep': '#f59e0b', // Primary Container
+        'kinetic-blue': '#adc6ff', // Secondary
+        'kinetic-blue-deep': '#0566d9', // Secondary Container
+        
+        // Surface Architecture
+        'surface-lowest': '#0c0e12',
+        'surface-low': '#191c1f',
+        'surface-container': '#1d2023',
+        'surface-high': '#282a2e',
+        'surface-highest': '#323539',
+        'surface-bright': '#37393d',
+
+        // On-Surface (Text)
+        'on-surface': '#e1e2e7',
+        
+        // Outlines (Used at low opacity only)
+        'kinetic-outline': '#a08e7a',
+        'kinetic-outline-variant': '#534434',
       },
       fontFamily: {
-        'hud': ['Inter', 'sans-serif'], // 可読性の高いHUDフォント
+        'hud': ['"Noto Sans JP"', 'sans-serif'],
+        'space': ['"Space Grotesk"', 'sans-serif'],
+        'manrope': ['"Manrope"', 'sans-serif'],
       },
-      keyframes: {
-        flow: {
-          '0%': { transform: 'translateX(-100%)' },
-          '100%': { transform: 'translateX(500%)' },
-        },
-        'fade-in': {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        'slide-in-bottom': {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        }
+      letterSpacing: {
+        'tight-eng': '-0.02em',
+        'wide-tech': '0.1em',
       },
-      animation: {
-        flow: 'flow 2s infinite linear',
-        'in': 'fade-in 0.5s ease-out forwards',
-        'fade-in': 'fade-in 0.5s ease-out forwards',
-        'slide-in-bottom': 'slide-in-bottom 0.5s ease-out forwards',
+      borderRadius: {
+        'tech': '0.25rem', // Default for buttons/inputs
+        'dashboard': '0.75rem', // For main dashboard containers
       }
     },
   },

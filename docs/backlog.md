@@ -69,3 +69,21 @@
   - 解析完了後、`API_CONTRACT.md` に準拠した護石データ（レア度、スキル、スロット、信頼度）と解析元クロップ画像が一覧表示されること。
   - これらの状態が Zustand のストアで管理され、画面遷移やリロードに対応していること。
 - **Design doc**: [API_CONTRACT.md](file:///<PROJECT_ROOT>/mhws-vision-server/docs/system/API_CONTRACT.md)
+
+---
+
+### REQ-006: ダッシュボード・リデザイン（一望性と操作性の向上）
+- **Type**: refinement
+- **Status**: done (2026-04-18)
+- **Current step**: none
+- **Priority**: P1
+- **Surface**: SPEC準拠の情報配置、Bentoスタイル統計パネル、可変サイドバーの実装を通じた操作性の向上。
+- **Root Cause**: Information Design / Interaction - 解析結果の全体把握（クロップ画像含む）と、個別の詳細確認・修正フローにおける視覚的・操作的摩擦の解消。
+- **Requirement**: Stitchプロジェクト『Markdown-Driven React UI』のコンセプトに基づき、高密度な情報レイアウトと、シームレスな詳細レビュー（マニュアルオーバーライド）を実現する。
+- **Acceptance criteria**:
+  - `Vision Engine Dashboard (v6)` に基づく、解析進捗と結果の一覧性が高いグリッド/リストレイアウトが実装されていること
+  - 護石カードをクリックした際、`Manual Override Modal` に基づく詳細確認・修正用モーダルが表示されること
+  - 各護石データに紐づくクロップ画像が、レビューに適したサイズとアスペクト比で表示されること
+  - モーダル内での修正内容が Zustand ストアに反映され、一覧画面に即座に同期されること
+- **Design doc**: [Stitch Project: 10818806089074320350](https://stitch.google.com/projects/10818806089074320350)
+

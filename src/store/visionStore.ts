@@ -24,6 +24,7 @@ interface VisionState {
   startAnalysis: (file: File) => Promise<void>;
   pollStatus: () => Promise<void>;
   fetchResults: () => Promise<void>;
+  updateTalisman: (updatedTalisman: Talisman) => void;
   reset: () => void;
 }
 
@@ -34,7 +35,40 @@ export const useVisionStore = create<VisionState>((set, get) => ({
   currentJobId: null,
   progress: 0,
   currentThumbnail: null,
-  talismans: [],
+  talismans: [
+    {
+      capture_id: 'mock_talisman_001',
+      rarity: 12,
+      slots: [4, 2, 1],
+      skills: [
+        { name: 'Attack Boost', level: 7 },
+        { name: 'Weakness Exploit', level: 3 }
+      ],
+      confidence: 0.98,
+      validation_status: 'valid'
+    },
+    {
+      capture_id: 'mock_talisman_002',
+      rarity: 11,
+      slots: [3, 3, 0],
+      skills: [
+        { name: 'Critical Eye', level: 5 },
+        { name: 'Critical Boost', level: 2 }
+      ],
+      confidence: 0.85,
+      validation_status: 'valid'
+    },
+    {
+      capture_id: 'mock_talisman_003',
+      rarity: 10,
+      slots: [2, 1, 0],
+      skills: [
+        { name: 'Free Elem/Ammo Up', level: 1 }
+      ],
+      confidence: 0.45,
+      validation_status: 'needs_selection'
+    }
+  ],
   error: null,
 
   reset: () => {
@@ -120,5 +154,13 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       console.error('Fetch results failed:', err);
       set({ error: '解析結果の取得に失敗しました。' });
     }
+  },
+  
+  updateTalisman: (updatedTalisman) => {
+    set((state) => ({
+      talismans: state.talismans.map((t) => 
+        t.capture_id === updatedTalisman.capture_id ? { ...updatedTalisman, validation_status: 'valid' } : t
+      )
+    }));
   },
 }));

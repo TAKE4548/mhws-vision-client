@@ -1,8 +1,8 @@
 # Feature Spec: Review Dashboard
 
 ## [Role Requirement]
-- **Role**: `role-ux-designer`
-- **Scope**: `tmp/frontend/src/app/dashboard/`
+- **Role**: `role-ux-designer`, `role-engineer`
+- **Scope**: `src/components/Dashboard.tsx`
 - **Forbidden**: 護石一件ごとの詳細データをコンポーネント内にローカルステートとして閉じ込めること（Zustandへの同期を必須とする）。
 
 ---
@@ -11,23 +11,22 @@
 抽出された護石データを一覧表示し、確信度の低い項目を人間が修正・確定するための中心的なインターフェースです。
 
 ## 2. 実装要件
-1. **Grid Layout**: 3カラムの安定したグリッド表示（スマホ・デスクトップ対応）。
-2. **Filtering/Sorting**: レア度、スキル名、自信度（低い順）によるソート機能。
-3. **Modal/Drawer**: カードクリック時に詳細（クロップ画像、推論ログ等）を表示。
-4. **Instant Edit**: スキルレベルや数値のドロップダウン変更を即座にステートへ反映。
+1. **Bento Stats Panel**: 画面上部に、解析進捗、検出数、要確認数、セッションIDを表示する4枚のモジュールパネルを配置する。
+2. **Kinetic Grid**: 視認性の高いグリッドレイアウトを採用。護石カードは 3:4 のアスペクト比を持つ垂直クロップ画像を左側に、データを右側に配置する。
+3. **Strict Data Ordering (SPEC準拠)**: カード内のデータは以下の順序で配置されなければならない。
+    - Confidence / Time (最上部)
+    - Rarity
+    - Slots
+    - Skills
+4. **Digital Zoom Interaction**: カードにホバーした際、元の画像を拡大表示し、OCR/抽出の根拠となった詳細を即座に確認できるようにする。
+5. **Manual Override Modal**: カードクリック時に、SPEC規定の順序（Rarity -> Slots -> Skills -> Live Feed）で詳細確認および手動修正を行うモーダルを表示する。
 
 ## 3. ステート構成 (Zustand)
-```typescript
-interface TalismanStore {
-  talismans: Talisman[];
-  isScanning: boolean;
-  progress: number;
-  updateTalisman: (id: string, updates: Partial<Talisman>) => void;
-  // ...
-}
-```
+- `visionStore`: 解析中の動画ステータス、ジョブID、進捗、および `Talisman` エンティティのリストを管理する。
+- `uiStore`: サイドバーの開閉状態（`isSidebarCollapsed`）等を管理する。
 
 ---
 
 ## 4. [Forbidden] 事項
-- ブラウザの戻る/進むボタン等で解析途中のデータが消失しないよう、`LocalStorage` への永続化バックアップを考慮すること。
+- **表示順序の変更**: SPECで定められたデータ表示順序（Confidence -> Rarity -> Slots -> Skills）を独断で変更してはならない。
+- **視認性の低下**: クロップ画像が小さすぎたり、アスペクト比が崩れたりしないよう細心の注意を払うこと。

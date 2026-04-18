@@ -1,5 +1,5 @@
 import React from 'react'
-import { LayoutDashboard, Target, Settings, Info } from 'lucide-react'
+import { LayoutDashboard, Target, Settings, Info, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useUIStore } from '../store/uiStore'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -9,7 +9,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const Sidebar = () => {
-  const { activeTab, setActiveTab } = useUIStore()
+  const { activeTab, setActiveTab, isSidebarCollapsed, toggleSidebar } = useUIStore()
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -18,20 +18,35 @@ const Sidebar = () => {
   ] as const
 
   return (
-    <aside className="w-64 bg-mhw-panel border-r border-mhw-accent/20 flex flex-col h-full shadow-2xl z-20">
-      <div className="p-6 border-b border-mhw-accent/10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-mhw-accent/10 border border-mhw-accent/50 flex items-center justify-center rounded">
-            <Info className="text-mhw-accent" size={20} />
-          </div>
-          <div>
-            <div className="font-bold text-mhw-accent text-sm tracking-tighter uppercase">Gravity</div>
-            <div className="text-[10px] opacity-40 uppercase tracking-widest">Vision System</div>
-          </div>
+    <aside 
+      className={cn(
+        "bg-surface-lowest flex flex-col h-full transition-all duration-500 ease-in-out z-20 relative group",
+        isSidebarCollapsed ? "w-20" : "w-64"
+      )}
+    >
+      {/* Collapse Toggle Label/Button */}
+      <button 
+        onClick={toggleSidebar}
+        className="absolute -right-3 top-24 w-6 h-6 bg-surface-highest rounded-full border-none flex items-center justify-center text-kinetic-amber shadow-[0_0_10px_rgba(0,0,0,0.5)] z-30 hover:scale-110 transition-transform opacity-0 group-hover:opacity-100"
+      >
+        {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
+
+      {/* Header / Brand */}
+      <div className={cn("p-6 flex items-center transition-all", isSidebarCollapsed ? "justify-center" : "gap-4")}>
+        <div className="w-10 h-10 kinetic-glass border-none flex items-center justify-center rounded-tech shrink-0">
+          <Info className="text-kinetic-amber" size={20} />
         </div>
+        {!isSidebarCollapsed && (
+          <div className="animate-in fade-in duration-500">
+            <div className="font-space-tech font-black text-kinetic-amber text-sm tracking-tight-eng uppercase">Gravity</div>
+            <div className="font-label-tech text-[8px] text-white/20 uppercase tracking-wide-tech">Vision System v4.2</div>
+          </div>
+        )}
       </div>
 
-      <nav className="flex-1 py-4">
+      {/* Navigation */}
+      <nav className="flex-1 py-8 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = activeTab === item.id
@@ -41,28 +56,53 @@ const Sidebar = () => {
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={cn(
-                "w-full flex items-center gap-4 px-6 py-4 transition-all relative group",
+                "w-full flex items-center transition-all relative group/nav",
+                isSidebarCollapsed ? "justify-center px-0 py-4" : "px-6 py-4 gap-4",
                 isActive 
-                  ? "text-mhw-accent bg-mhw-accent/5" 
-                  : "text-mhw-text/60 hover:text-mhw-text hover:bg-white/5"
+                  ? "text-on-surface bg-surface-bright/5" 
+                  : "text-white/20 hover:text-on-surface hover:bg-white/5"
               )}
             >
-              <Icon size={18} className={cn(isActive ? "text-mhw-accent" : "opacity-50")} />
-              <span className="text-sm font-bold tracking-widest uppercase">{item.label}</span>
+              <Icon 
+                size={20} 
+                className={cn(
+                  "transition-colors", 
+                  isActive ? "text-kinetic-amber" : "group-hover/nav:text-white"
+                )} 
+              />
               
-              {/* Highlight bar */}
+              {!isSidebarCollapsed && (
+                <span className="font-space-tech text-xs font-black tracking-wide-tech uppercase animate-in fade-in slide-in-from-left-2 duration-300">
+                  {item.label}
+                </span>
+              )}
+              
+              {/* Highlight Glow */}
               {isActive && (
-                <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-mhw-accent shadow-[0_0_10px_rgba(201,160,99,0.5)]" />
+                <div className="absolute left-0 top-1/4 bottom-1/4 w-[3px] bg-kinetic-amber shadow-[0_0_12px_#ffc174] rounded-r-full" />
               )}
             </button>
           )
         })}
       </nav>
 
-      <div className="p-6 border-t border-mhw-accent/10">
-        <div className="mhw-panel p-3 border border-mhw-accent/10 bg-black/30 rounded text-center">
-          <div className="text-[10px] uppercase opacity-40 mb-1">Current Hunting Mode</div>
-          <div className="text-xs font-bold text-mhw-success tracking-widest">STABLE SCAN</div>
+      {/* Footer Info */}
+      <div className="p-6">
+        <div className={cn(
+          "kinetic-surface-mid transition-all duration-300",
+          isSidebarCollapsed ? "p-2 aspect-square flex items-center justify-center" : "p-4"
+        )}>
+          {isSidebarCollapsed ? (
+            <div className="w-2 h-2 rounded-full bg-kinetic-amber animate-pulse shadow-[0_0_8px_#ffc174]" />
+          ) : (
+            <div className="animate-in fade-in duration-500">
+              <div className="font-label-tech text-[8px] text-white/20 uppercase tracking-widest mb-1">Status</div>
+              <div className="font-space-tech text-[10px] font-black text-kinetic-amber tracking-widest flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-kinetic-amber animate-pulse shadow-[0_0_5px_#ffc174]" />
+                STABLE_SCAN
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </aside>

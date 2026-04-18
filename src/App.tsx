@@ -15,12 +15,12 @@ function App() {
   }, [checkHealth])
 
   return (
-    <div className="flex h-screen bg-mhw-bg text-mhw-text overflow-hidden font-hud">
+    <div className="flex h-screen bg-surface-lowest text-on-surface overflow-hidden font-hud">
       {/* Sidebar Navigation */}
       <Sidebar />
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto bg-surface-base">
         <header className="p-4 border-b border-mhw-accent/10 flex justify-between items-center bg-mhw-panel/50 backdrop-blur-sm sticky top-0 z-10">
           <h1 className="text-xl font-bold tracking-widest text-mhw-accent uppercase">
             Talisman Vision <span className="text-xs opacity-50 ml-2">v0.1.0</span>
