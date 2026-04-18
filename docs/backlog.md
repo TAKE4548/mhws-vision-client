@@ -89,7 +89,7 @@
 
 ### REQ-007: ROI設定用 Canvas インタラクション
 - **Type**: feature
-- **Status**: new
+- **Status**: done (2026-04-19)
 - **Current step**: none
 - **Priority**: P0
 - **Surface**: キャンバス上での矩形選択、ドラッグ、リサイズ機能の実装。

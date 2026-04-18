@@ -1,23 +1,23 @@
-# Development Session: Backend Connection Monitoring (REQ-004)
+# Development Session: ROIインタラクティブ設定 (REQ-007)
 
 - **State**: inactive
-- **End Date**: 2026-04-18
+- **Start Date**: 2026-04-19
+- **End Date**: 2026-04-19
 - **Target REQs**:
-  - REQ-004: バックエンド接続確認の実装 (Backend Integration Foundation)
-- **Branch**: `feat/REQ-004-backend-connection`
+  - REQ-007: ROI設定用 Canvas インタラクション (Interactive ROI Selection)
+- **Branch**: `feat/REQ-007-roi-canvas`
 - **Coordinator**: AntiGravity
 - **Current Step**: Step 8 (Finalization)
 
 ## Objectives
-- Implement `apiClient` using Axios with proper base URL and interceptors.
-- Create/Update `serverStore` using Zustand to track backend health status.
-- Implement a background polling mechanism to check server availability.
-- Add a visual status indicator (Online/Offline) in the UI (Header or Sidebar).
+- Implement an interactive canvas for ROI selection and adjustment.
+- Add resize handles (corners/edges) for precise coordination.
+- Sync ROI coordinates with Zustand store.
+- Ensure compatibility with backend ROI configuration format.
 
 ## Progress Track
-- [ ] High-Level Design & Implementation Plan
-- [ ] API Client Setup
-- [ ] Server Health Store Implementation
-- [ ] Background Monitoring Logic
-- [ ] UI Status Indicator Component
-- [ ] Verification
+- [x] High-Level Design & Impact Analysis
+- [x] UX Specification for Interaction
+- [x] Canvas Component Implementation (Draggable/Resizable)
+- [x] Zustand Store Integration
+- [x] Verification with Mock/Live Preview
