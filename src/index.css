@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-mhw-bg text-mhw-text font-hud;
+  }
+}
+
+@layer components {
+  .mhw-panel {
+    @apply bg-mhw-panel border border-mhw-accent/30 rounded-lg p-4 shadow-lg;
+  }
+  
+  .mhw-button {
+    @apply px-4 py-2 bg-mhw-accent text-mhw-bg font-bold rounded hover:brightness-110 active:scale-95 transition-all;
+  }
+}
