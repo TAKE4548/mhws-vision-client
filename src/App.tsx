@@ -7,12 +7,15 @@ import ROICalibrator from './components/ROICalibrator'
 
 function App() {
   const activeTab = useUIStore((state) => state.activeTab)
-  const { isOnline, checkHealth } = useServerStore()
+  const { isOnline, startPolling, stopPolling } = useServerStore()
 
   useEffect(() => {
-    // 起動時に接続確認を実行
-    checkHealth()
-  }, [checkHealth])
+    // 起動時に接続監視を開始し、アンマウント時に停止する
+    startPolling()
+    return () => {
+      stopPolling()
+    }
+  }, [startPolling, stopPolling])
 
   return (
     <div className="flex h-screen bg-surface-lowest text-on-surface overflow-hidden font-hud">

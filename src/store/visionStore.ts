@@ -8,6 +8,7 @@ export interface Talisman {
   skills: {
     name: string;
     level: number;
+    confidence: number;
   }[];
   confidence: number;
   validation_status: 'valid' | 'needs_selection' | 'error';
@@ -41,8 +42,8 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       rarity: 12,
       slots: [4, 2, 1],
       skills: [
-        { name: 'Attack Boost', level: 7 },
-        { name: 'Weakness Exploit', level: 3 }
+        { name: 'Attack Boost', level: 7, confidence: 1.0 },
+        { name: 'Weakness Exploit', level: 3, confidence: 0.95 }
       ],
       confidence: 0.98,
       validation_status: 'valid'
@@ -52,8 +53,8 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       rarity: 11,
       slots: [3, 3, 0],
       skills: [
-        { name: 'Critical Eye', level: 5 },
-        { name: 'Critical Boost', level: 2 }
+        { name: 'Critical Eye', level: 5, confidence: 0.88 },
+        { name: 'Critical Boost', level: 2, confidence: 0.82 }
       ],
       confidence: 0.85,
       validation_status: 'valid'
@@ -63,7 +64,7 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       rarity: 10,
       slots: [2, 1, 0],
       skills: [
-        { name: 'Free Elem/Ammo Up', level: 1 }
+        { name: 'Free Elem/Ammo Up', level: 1, confidence: 0.75 }
       ],
       confidence: 0.45,
       validation_status: 'needs_selection'

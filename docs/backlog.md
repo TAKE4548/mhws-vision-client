@@ -41,8 +41,8 @@
 
 ### REQ-004: バックエンド接続確認の実装
 - **Type**: feature
-- **Status**: in-progress
-- **Current step**: APIクライアントおよびサーバー状態管理ストアの実装
+- **Status**: done (2026-04-18)
+- **Current step**: none
 - **Priority**: P1
 - **Surface**: Backend integration foundation.
 - **Root Cause**: Backend への実際の通信を確立し、プロトタイプから連動型 UI への移行を開始するため。
@@ -85,5 +85,67 @@
   - 護石カードをクリックした際、`Manual Override Modal` に基づく詳細確認・修正用モーダルが表示されること
   - 各護石データに紐づくクロップ画像が、レビューに適したサイズとアスペクト比で表示されること
   - モーダル内での修正内容が Zustand ストアに反映され、一覧画面に即座に同期されること
-- **Design doc**: [Stitch Project: 10818806089074320350](https://stitch.google.com/projects/10818806089074320350)
+---
+
+### REQ-007: ROI設定用 Canvas インタラクション
+- **Type**: feature
+- **Status**: new
+- **Current step**: none
+- **Priority**: P0
+- **Surface**: キャンバス上での矩形選択、ドラッグ、リサイズ機能の実装。
+- **Root Cause**: Interaction Design - 座標の数値入力だけでなく、視覚的操作により直感的な解析範囲設定が必要。
+- **Requirement**: Canvas API またはライブラリを用い、ROI（解析矩形）をユーザーが画面上でインタラクティブに変更・リサイズ・保存できるUIを提供する。
+- **Acceptance criteria**:
+  - 画像または動画プレビュー上で矩形を描画・変更できること。
+  - 矩形の各辺・角に制御ハンドルが表示され、リサイズが可能であること。
+  - 決定された座標データが Zustand ストアに保存され、Backend API と連携可能な形式で保持されること。
+- **Design doc**: none
+
+---
+
+### REQ-008: 高機能ジョブ・モニターダッシュボード
+- **Type**: feature
+- **Status**: new
+- **Current step**: none
+- **Priority**: P2
+- **Surface**: 複数ジョブのステータス一覧、フィルタリング、進捗の動的表示。
+- **Root Cause**: Information Design - 複数の動画を並列処理する際、各タスクの状況を俯瞰して把握し、エラー発生時に迅速に対処するため。
+- **Requirement**: 過去・現在の解析ジョブを一元管理するダッシュボード。進捗率の動的更新、成功・失敗・処理中のステータスフィルタリング機能を備える。
+- **Acceptance criteria**:
+  - ジョブ一覧がテーブルまたはグリッド形式で表示されること。
+  - 進捗がリアルタイム（ポーリング等）で更新され、MHW風のプログレスバーで視覚化されること。
+  - 各ジョブから詳細結果画面（護石一覧）へ遷移できること。
+- **Design doc**: none
+
+---
+
+### REQ-009: プレミアム護石カード（MHW HUDスタイル）
+- **Type**: refinement
+- **Status**: new
+- **Current step**: none
+- **Priority**: P1
+- **Surface**: レア度に応じた視覚効果、バッジ表示、スロット情報の完全同期。
+- **Root Cause**: Aesthetics / Information Design - 解析結果の重要度（レア度や信頼度）を一目で判断できるようにし、ゲーム本編に近い没入感を提供するため。
+- **Requirement**: `DESIGN_SYSTEM.md` に基づき、護石カードのデザインをブラッシュアップ。レア度に応じた配色、装飾品スロットの正確なアイコン表現、OCR信頼度に基づく「要確認」バッジ等を実装する。
+- **Acceptance criteria**:
+  - レア度(Rarity)に応じた枠線色やグラデーションが適用されていること。
+  - スロット（Lv1〜4）がゲーム内アイコンに近い形式で表示されること。
+  - OCR信頼度が閾値以下の項目に対し「Caution/High Confidence」等のラベルが表示されること。
+- **Design doc**: [DESIGN_SYSTEM.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-client/docs/ui/features/DESIGN_SYSTEM.md)
+
+---
+
+### REQ-010: マスターデータ連携型修正モーダル
+- **Type**: feature
+- **Status**: new
+- **Current step**: none
+- **Priority**: P2
+- **Surface**: スキル名のオートコンプリート、バリデーション付き修正インターフェース。
+- **Root Cause**: Efficiency / Data Integrity - 手動修正時の入力ミスを最小限に抑え、存在しないスキル名の登録を防止するため。
+- **Requirement**: 護石データ修正モーダルにおいて、スキル名入力時に静的マスターデータから候補を表示する。また、スロットやレベルの入力範囲をバリデーションする機能を実装する。
+- **Acceptance criteria**:
+  - スキル名入力欄で部分一致によるオートコンプリートが動作すること。
+  - 選択肢にないスキル名が入力された場合に警告または入力を制限すること。
+  - 修正完了時、`PATCH /api/v1/talismans/{id}` へのリクエストが正しく発行されること。
+- **Design doc**: none
 

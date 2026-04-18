@@ -1,16 +1,23 @@
-# Development Session: Dashboard Redesign (Overview & Operability)
+# Development Session: Backend Connection Monitoring (REQ-004)
 
 - **State**: inactive
 - **End Date**: 2026-04-18
 - **Target REQs**:
-  - REQ-006: ダッシュボード・リデザイン（一望性と操作性の向上）
-- **Branch**: `feat/REQ-006-dashboard-redesign`
+  - REQ-004: バックエンド接続確認の実装 (Backend Integration Foundation)
+- **Branch**: `feat/REQ-004-backend-connection`
 - **Coordinator**: AntiGravity
 - **Current Step**: Step 8 (Finalization)
 
-## Result Summary
-- **デザインシステムの拡張**: `tailwind.config.js` への Kinetic Observatory トークンの追加、Space Grotesk/Manrope フォントの導入。
-- **高密度ダッシュボード**: 解析結果の一覧性を高めたグリッドレイアウト（一望性）の構築。
-- **詳細修正モーダル**: `TalismanDetailsModal` を新設し、クロップ画像の拡大表示と手動保存（Manual Override）フローを実装（操作性）。
-- **認証・永続化**: Zustand ストアによる修正データの管理とバリデーションステータスの自動更新。
+## Objectives
+- Implement `apiClient` using Axios with proper base URL and interceptors.
+- Create/Update `serverStore` using Zustand to track backend health status.
+- Implement a background polling mechanism to check server availability.
+- Add a visual status indicator (Online/Offline) in the UI (Header or Sidebar).
 
+## Progress Track
+- [ ] High-Level Design & Implementation Plan
+- [ ] API Client Setup
+- [ ] Server Health Store Implementation
+- [ ] Background Monitoring Logic
+- [ ] UI Status Indicator Component
+- [ ] Verification
