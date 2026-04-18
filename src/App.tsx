@@ -1,11 +1,18 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useUIStore } from './store/uiStore'
+import { useServerStore } from './store/serverStore'
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import ROICalibrator from './components/ROICalibrator'
 
 function App() {
   const activeTab = useUIStore((state) => state.activeTab)
+  const { isOnline, checkHealth } = useServerStore()
+
+  useEffect(() => {
+    // 起動時に接続確認を実行
+    checkHealth()
+  }, [checkHealth])
 
   return (
     <div className="flex h-screen bg-mhw-bg text-mhw-text overflow-hidden font-hud">
@@ -20,8 +27,10 @@ function App() {
           </h1>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-mhw-success animate-pulse"></span>
-              <span className="text-xs uppercase opacity-70">Server Connected</span>
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-mhw-success shadow-[0_0_8px_rgba(74,153,144,0.6)] animate-pulse' : 'bg-mhw-danger shadow-[0_0_8px_rgba(170,51,51,0.6)]'}`}></span>
+              <span className={`text-xs uppercase tracking-tighter ${isOnline ? 'opacity-70' : 'text-mhw-danger'}`}>
+                {isOnline ? 'Server Online' : 'Server Offline'}
+              </span>
             </div>
           </div>
         </header>
