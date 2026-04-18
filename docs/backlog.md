@@ -8,7 +8,7 @@
 
 ### REQ-001: プロジェクト基盤の最終調整
 - **Type**: enhancement
-- **Status**: ready
+- **Status**: done
 - **Current step**: none
 - **Priority**: P3
 - **Surface**: 初期環境構築後の細かな構成確認とクリーンアップ。
@@ -22,15 +22,17 @@
 
 ---
 
-### REQ-002: [PLACEHOLDER] 次の機能要件
-- **Type**: enhancement
-- **Status**: new
+### REQ-003: フロントエンド初版画面プロトタイプの作成
+- **Type**: feature
+- **Status**: done
 - **Current step**: none
-- **Priority**: unset
-- **Surface**: プレースホルダー要件。
-- **Root Cause**: TBD
-- **Requirement**: TBD
+- **Priority**: P1
+- **Surface**: docs 内の設計に基づき、MHW スタイルの高精度なUIプロトタイプを構築したい。
+- **Root Cause**: Interaction/Information Design - Streamlit の制約を超えた、高精度な操作性と視覚的な一貫性（HUDスタイル）を実現するため。
+- **Requirement**: Backend 移行と並行して、Mock データを用いた主要機能（Dashboard, ROI Calibrator）の画面構造とデザインシステムを先行して実装する。
 - **Acceptance criteria**:
-  - Functional requirement 1
-  - Functional requirement 2
-- **Design doc**: none
+  - `DESIGN_SYSTEM.md` に基づく共通レイアウト（MHWスタイル）が Tailwind CSS で実装されていること
+  - 「Review Dashboard」と「ROI Calibrator」の画面がサイドバー等で切り替え可能であること
+  - 各画面がモックデータを使用し、設計通りのコンポーネント構成で表示されること
+  - Zustand を用いたステート管理の初期構造（ストア定義）が完了していること
+- **Design doc**: [DESIGN_SYSTEM.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-client/docs/ui/features/DESIGN_SYSTEM.md), [REVIEW_DASHBOARD.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-client/docs/ui/features/REVIEW_DASHBOARD.md), [ROI_CALIBRATOR.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-client/docs/ui/features/ROI_CALIBRATOR.md)
