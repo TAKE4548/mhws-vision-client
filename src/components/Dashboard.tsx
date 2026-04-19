@@ -4,9 +4,10 @@ import { useVisionStore, Talisman } from '../store/visionStore';
 import VideoUploader from './vision/VideoUploader';
 import AnalysisMonitor from './vision/AnalysisMonitor';
 import TalismanDetailsModal from './vision/TalismanDetailsModal';
+import { API_BASE_URL, API_HOST } from '../lib/api-client';
 
 const TalismanCard: React.FC<{ talisman: Talisman, onClick: () => void }> = ({ talisman, onClick }) => {
-  const imageUrl = talisman.image_url || `http://localhost:8000/api/v1/assets/crops/${talisman.capture_id}.webp`;
+  const imageUrl = talisman.image_url || `${API_HOST}/assets/crops/${talisman.capture_id}.webp`;
   const timestamp = talisman.timestamp_ms 
     ? new Date(talisman.timestamp_ms).toLocaleTimeString('ja-JP', { hour12: false })
     : new Date().toLocaleTimeString('ja-JP', { hour12: false });
@@ -26,7 +27,19 @@ const TalismanCard: React.FC<{ talisman: Talisman, onClick: () => void }> = ({ t
             alt="Crop" 
             className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-700 ease-out"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/120x160?text=SCAN';
+              const target = e.currentTarget as HTMLImageElement;
+              if (target.dataset.retry === 'true') {
+                if (!target.src.includes('via.placeholder.com')) {
+                  target.src = 'https://via.placeholder.com/120x160?text=NOT+FOUND';
+                }
+              } else {
+                target.dataset.retry = 'true';
+                console.log(`[Dashboard] Retrying image load for: ${talisman.capture_id}`);
+                setTimeout(() => {
+                  const baseSrc = target.src.split('?')[0];
+                  target.src = `${baseSrc}?t=${Date.now()}`;
+                }, 1500);
+              }
             }}
           />
         )}
@@ -41,7 +54,7 @@ const TalismanCard: React.FC<{ talisman: Talisman, onClick: () => void }> = ({ t
         {/* Bleeding Label */}
         <div className={`absolute top-0 left-0 px-2 py-0.5 rounded-br-sm shadow-lg z-10 ${isProcessing ? 'bg-kinetic-blue' : 'bg-kinetic-amber'}`}>
            <span className="font-space-tech text-[8px] font-black text-black">
-             {isProcessing ? 'PROBING' : 'MOCK_TAL'}
+             {isProcessing ? 'PROBING' : `UNIT_${talisman.capture_id.slice(-4).toUpperCase()}`}
            </span>
         </div>
       </div>
@@ -68,13 +81,13 @@ const TalismanCard: React.FC<{ talisman: Talisman, onClick: () => void }> = ({ t
           {/* Row 1: Rarity Badge */}
           <div>
             <span className={`inline-block px-2 py-0.5 rounded-tech font-space-tech text-[9px] font-black tracking-widest ${isProcessing ? 'bg-white/5 text-white/20' : 'bg-white/5 text-on-surface'}`}>
-              RARE {talisman.rarity.value || '?'}
+              RARE {talisman.rarity?.value ?? '?'}
             </span>
           </div>
 
           {/* Row 2: Slot Configuration */}
           <div className="flex gap-2">
-            {(talisman.slots.value.length > 0 ? talisman.slots.value : [0, 0, 0]).map((s, i) => (
+            {(talisman.slots?.value?.length > 0 ? talisman.slots.value : [0, 0, 0]).map((s, i) => (
               <div key={i} className="flex flex-col items-center gap-1">
                 <div className={s > 0 ? "text-kinetic-blue" : "text-white/5"}>
                   <div className="font-space-tech text-[10px] font-black">{s > 0 ? `[${s}]` : '[-]'}</div>
@@ -85,7 +98,7 @@ const TalismanCard: React.FC<{ talisman: Talisman, onClick: () => void }> = ({ t
 
           {/* Row 3: Skill List */}
           <div className="space-y-1">
-            {talisman.skills.length > 0 ? (
+            {talisman.skills?.length > 0 ? (
               talisman.skills.slice(0, 2).map((skill, idx) => (
                 <div key={idx} className="flex justify-between items-center group/skill">
                   <span className="font-label-tech text-[9px] text-white/40 truncate mr-2 uppercase group-hover/skill:text-on-surface transition-colors">

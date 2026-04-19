@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { apiClient } from '../lib/api-client';
+import { apiClient, API_HOST } from '../lib/api-client';
 
 interface ServerState {
   isOnline: boolean;
@@ -22,8 +22,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
   checkHealth: async () => {
     set({ isChecking: true });
     try {
-      // 決まったエンドポイントがないため、暫定的にルートを叩く (将来的に /health に変更予定)
-      await apiClient.get('/');
+      // サーバーのルート（/）を叩いて死活監視
+      await apiClient.get('/', { baseURL: API_HOST });
       set({
         isOnline: true,
         serverError: null,

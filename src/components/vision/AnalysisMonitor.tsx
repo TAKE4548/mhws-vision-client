@@ -1,6 +1,7 @@
-import React from 'react';
-import { Loader2, Activity, Image as ImageIcon, XCircle, Trash2, Scan } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Activity, Image as ImageIcon, XCircle, Trash2, Scan, Play, Settings } from 'lucide-react';
 import { useVisionStore } from '../../store/visionStore';
+import { API_HOST } from '../../lib/api-client';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -9,7 +10,30 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export const AnalysisMonitor: React.FC = () => {
-  const { status, progress = 0, talismans = [], currentJobId, cancelJob, error } = useVisionStore();
+  const { 
+    status, 
+    progress = 0, 
+    talismans = [], 
+    currentJobId, 
+    cancelJob, 
+    error,
+    profiles,
+    fetchProfiles,
+    startAnalysis
+  } = useVisionStore();
+
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+
+  useEffect(() => {
+    fetchProfiles();
+  }, [fetchProfiles]);
+
+  useEffect(() => {
+    if (profiles.length > 0 && !selectedProfileId) {
+      const defaultProfile = profiles.find(p => p.is_default) || profiles[0];
+      setSelectedProfileId(defaultProfile.id);
+    }
+  }, [profiles, selectedProfileId]);
 
   const recentTalismans = [...talismans].reverse().slice(0, 3);
 
@@ -39,36 +63,85 @@ export const AnalysisMonitor: React.FC = () => {
         {/* Progress & Control Area */}
         <div className="lg:col-span-2 space-y-6">
           <div className="kinetic-surface-high p-8 relative overflow-hidden">
-            {/* Progress Bar Container */}
+            {/* Progress Bar Container / Ready to Start Area */}
             <div className="space-y-6">
-              <div className="flex justify-between items-center font-space-tech text-[10px] font-black tracking-widest text-kinetic-blue">
-                <span className="flex items-center gap-2">
-                   <Loader2 className="w-3 h-3 animate-spin" />
-                   SCANNING VIDEO STREAM
-                </span>
-                <span className="tabular-nums">{progress.toFixed(1)}% COMPLETE</span>
-              </div>
-              
-              <div className="h-4 bg-surface-lowest border border-white/5 relative overflow-hidden p-0.5">
-                {/* Background Grid Pattern */}
-                <div className="absolute inset-0 opacity-10 pointer-events-none" 
-                     style={{ backgroundImage: 'linear-gradient(90deg, #38bdf8 1px, transparent 1px)', backgroundSize: '5% 100%' }} />
-                
-                <div 
-                  className="h-full bg-kinetic-blue shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all duration-700 ease-out relative"
-                  style={{ width: `${progress}%` }}
-                >
-                  {/* Energy Flow Animation */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-32 animate-flow pointer-events-none" />
+              {status === 'pending' ? (
+                <div className="space-y-8 animate-in zoom-in-95 duration-500">
+                  <div className="text-center space-y-2">
+                    <span className="font-space-tech text-[10px] text-kinetic-blue uppercase tracking-[0.3em]">System Primed</span>
+                    <h3 className="text-2xl font-space-tech font-black text-white italic uppercase">READY FOR TACTICAL SCAN</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-surface-lowest/50 p-6 border border-white/5 rounded-sm">
+                    <div className="space-y-2">
+                       <label className="font-label-tech text-[8px] text-white/20 uppercase tracking-widest flex items-center gap-2">
+                         <Settings className="w-2 h-2" />
+                         Detection Profile
+                       </label>
+                       <select 
+                         value={selectedProfileId}
+                         onChange={(e) => setSelectedProfileId(e.target.value)}
+                         className="w-full bg-surface-high border-none text-[10px] font-space-tech text-kinetic-blue py-3 px-4 focus:ring-1 focus:ring-kinetic-blue/40 appearance-none uppercase transition-all"
+                       >
+                         {profiles.length > 0 ? (
+                           profiles.map(p => (
+                             <option key={p.id} value={p.id}>{p.name} {p.is_default ? '(DEFAULT)' : ''}</option>
+                           ))
+                         ) : (
+                           <option value="">NO PROFILES DETECTED</option>
+                         )}
+                       </select>
+                       {profiles.length === 0 && (
+                          <p className="text-[8px] font-label-tech text-kinetic-amber uppercase animate-pulse">
+                            Create a profile in ROI Calibrator first
+                          </p>
+                       )}
+                    </div>
+                    
+                    <div className="flex items-end">
+                      <button 
+                        onClick={() => startAnalysis(selectedProfileId)}
+                        disabled={!selectedProfileId || status !== 'pending'}
+                        className="w-full py-3 bg-kinetic-blue text-black font-space-tech font-black text-[12px] uppercase tracking-wider flex items-center justify-center gap-3 hover:bg-white hover:shadow-[0_0_20px_rgba(56,189,248,0.5)] transition-all disabled:opacity-20"
+                      >
+                        <Play className="w-4 h-4 fill-current" />
+                        INITIATE ANALYSIS
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              {/* Discrete Progress Pips */}
-              <div className="grid grid-cols-10 gap-2">
-                {[...Array(10)].map((_, i) => (
-                  <div key={i} className={`h-1 transition-all duration-700 ${progress > (i + 1) * 10 ? 'bg-kinetic-blue shadow-[0_0_8px_rgba(56,189,248,0.5)]' : 'bg-white/5'}`} />
-                ))}
-              </div>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center font-space-tech text-[10px] font-black tracking-widest text-kinetic-blue">
+                    <span className="flex items-center gap-2">
+                       <Loader2 className="w-3 h-3 animate-spin" />
+                       {status === 'completed' ? 'SCAN COMPLETE' : 'SCANNING VIDEO STREAM'}
+                    </span>
+                    <span className="tabular-nums">{progress.toFixed(1)}% COMPLETE</span>
+                  </div>
+                  
+                  <div className="h-4 bg-surface-lowest border border-white/5 relative overflow-hidden p-0.5">
+                    {/* Background Grid Pattern */}
+                    <div className="absolute inset-0 opacity-10 pointer-events-none" 
+                         style={{ backgroundImage: 'linear-gradient(90deg, #38bdf8 1px, transparent 1px)', backgroundSize: '5% 100%' }} />
+                    
+                    <div 
+                      className="h-full bg-kinetic-blue shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all duration-700 ease-out relative"
+                      style={{ width: `${progress}%` }}
+                    >
+                      {/* Energy Flow Animation */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-32 animate-flow pointer-events-none" />
+                    </div>
+                  </div>
+                  
+                  {/* Discrete Progress Pips */}
+                  <div className="grid grid-cols-10 gap-2">
+                    {[...Array(10)].map((_, i) => (
+                      <div key={i} className={`h-1 transition-all duration-700 ${progress > (i + 1) * 10 ? 'bg-kinetic-blue shadow-[0_0_8px_rgba(56,189,248,0.5)]' : 'bg-white/5'}`} />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Status Messages */}
@@ -128,7 +201,26 @@ export const AnalysisMonitor: React.FC = () => {
                 <div key={t.capture_id} className="kinetic-surface-high p-3 flex gap-4 animate-in slide-in-from-right-4 duration-500 border-l-2 border-kinetic-blue/40">
                   <div className="w-16 h-16 bg-surface-lowest shrink-0 overflow-hidden rounded-sm relative">
                     {t.image_url ? (
-                      <img src={t.image_url} className="w-full h-full object-cover" alt="Discovery" />
+                      <img 
+                        src={t.image_url.startsWith('/') ? `${API_HOST}${t.image_url}` : t.image_url} 
+                        className="w-full h-full object-cover" 
+                        alt="Discovery" 
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          if (target.dataset.retry === 'true') {
+                            if (!target.src.includes('via.placeholder.com')) {
+                              target.src = 'https://via.placeholder.com/120x160?text=NONE';
+                            }
+                          } else {
+                            target.dataset.retry = 'true';
+                            console.log(`[Monitor] Retrying image load for: ${t.capture_id}`);
+                            setTimeout(() => {
+                              const baseSrc = target.src.split('?')[0];
+                              target.src = `${baseSrc}?t=${Date.now()}`;
+                            }, 1500);
+                          }
+                        }}
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center animate-pulse">
                         <Scan className="w-4 h-4 text-kinetic-blue/20" />
@@ -142,7 +234,7 @@ export const AnalysisMonitor: React.FC = () => {
                           {t.validation_status.toUpperCase()}
                        </span>
                     </div>
-                    {t.skills.length > 0 && (
+                    {t.skills?.length > 0 && (
                        <p className="font-label-tech text-[9px] text-white/40 truncate uppercase">
                          {t.skills[0].name} LV{t.skills[0].level}
                        </p>

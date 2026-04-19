@@ -3,15 +3,18 @@ import { useUIStore } from '../store/uiStore';
 import * as mockData from './mock-data';
 
 /**
+ * Backend API Configuration
+ */
+export const API_HOST = 'http://localhost:8000';
+export const API_VERSION = '/api/v1';
+export const API_BASE_URL = `${API_HOST}${API_VERSION}`;
+
+/**
  * Backend API Client
- * Base URL: http://localhost:8000
  */
 export const apiClient = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: API_BASE_URL,
   timeout: 5000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Request interceptor for API Stubbing (REQ-014)

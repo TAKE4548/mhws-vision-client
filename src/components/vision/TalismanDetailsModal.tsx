@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Shield, Edit3, Target, Crosshair, Activity } from 'lucide-react';
 import { Talisman, useVisionStore } from '../../store/visionStore';
+import { API_BASE_URL, API_HOST } from '../../lib/api-client';
 
 interface Props {
   talisman: Talisman;
@@ -10,14 +11,14 @@ interface Props {
 const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
   const { updateTalisman } = useVisionStore();
   const [edited, setEdited] = useState<Talisman>(talisman);
-  const imageUrl = `http://localhost:8000/api/v1/assets/crops/${talisman.capture_id}.webp`;
+  const imageUrl = talisman.image_url || `${API_HOST}/assets/crops/${talisman.capture_id}.webp`;
 
   useEffect(() => {
     setEdited(talisman);
   }, [talisman]);
 
   const handleSave = () => {
-    updateTalisman(edited);
+    updateTalisman(talisman.capture_id, edited);
     onClose();
   };
 
@@ -84,7 +85,19 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
                   alt="Source Crop" 
                   className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-700"
                   onError={(e) => {
-                     (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=IMAGE+NOT+FOUND';
+                    const target = e.currentTarget as HTMLImageElement;
+                    if (target.dataset.retry === 'true') {
+                      if (!target.src.includes('via.placeholder.com')) {
+                        target.src = 'https://via.placeholder.com/400x300?text=IMAGE+NOT+FOUND';
+                      }
+                    } else {
+                      target.dataset.retry = 'true';
+                      console.log(`[Modal] Retrying image load for: ${talisman.capture_id}`);
+                      setTimeout(() => {
+                        const baseSrc = target.src.split('?')[0];
+                        target.src = `${baseSrc}?t=${Date.now()}`;
+                      }, 1500);
+                    }
                   }}
                 />
                 {/* Calibration Overlays */}

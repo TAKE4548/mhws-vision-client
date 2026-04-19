@@ -1,3 +1,4 @@
+import { API_BASE_URL } from './api-client';
 import { useUIStore } from '../store/uiStore';
 import * as mockData from './mock-data';
 
@@ -44,7 +45,7 @@ class SSEClient {
     }
 
     // Live mode connection
-    const url = `http://localhost:8000/api/v1/analyze/events/${jobId}`;
+    const url = `${API_BASE_URL}/analyze/events/${jobId}`;
     this.eventSource = new EventSource(url);
 
     // Subscribe to all known event types
