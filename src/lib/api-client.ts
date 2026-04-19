@@ -46,31 +46,31 @@ apiClient.interceptors.request.use((config) => {
     } else if (url.includes('/analyze/video')) {
       data = { job_id: 'mock-job-id' };
     } else if (url.includes('/vision/preview')) {
-      data = mockData.MOCK_VISION_PREVIEW;
+      // Return the image directly as data if that's what the component expects
+      // Or wrap it in success if uses CommonResponse
+      data = mockData.MOCK_VISION_PREVIEW; 
     } else if (url.includes('/config/roi/profiles')) {
-      data = mockData.MOCK_ROI_PROFILES;
+      if (config.method === 'post') {
+        const postData = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+        data = { profile_id: `profile-${Math.random().toString(36).substr(2, 9)}`, ...postData };
+      } else {
+        data = mockData.MOCK_ROI_PROFILES;
+      }
     } else {
-      // Default success for other endpoints (POST/PATCH/DELETE)
       data = { message: 'Stub: Operation successful' };
     }
 
-    // Return a fake response that looks like an Axios response
-    // We throw this to catch it and return it as a resolved promise in a special way, 
-    // or just return it as a "successful" request that is then handled by the response interceptor.
-    // However, Axios request interceptors are expected to return config.
-    // To 'short-circuit', we can use an adapter or a trick.
-    // Let's use a simpler approach: return a rejected promise with a special flag 
-    // and catch it in the response interceptor to transform it back to a success.
     return Promise.reject({
       isStub: true,
       response: {
-        status: 200,
+        status: url.includes('/config/roi/profiles') && config.method === 'post' ? 201 : 200,
         statusText: 'OK',
         data: mockData.wrapMock(data),
         config,
         headers: {},
       },
     });
+
   }
 
   return config;
@@ -88,7 +88,7 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     // Handle short-circuited Stub requests
-    if (error.isStub && error.response.status === 200) {
+    if (error.isStub && error.response.status >= 200 && error.response.status < 300) {
       const resp = error.response;
       // Re-run the unwrapping logic for stubbed data
       if (resp.data && resp.data.status === 'success' && resp.data.data !== undefined) {

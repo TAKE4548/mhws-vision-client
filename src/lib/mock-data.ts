@@ -67,23 +67,34 @@ export const MOCK_ANALYSIS_COMPLETED = {
 
 export const MOCK_ROI_PROFILES = [
   {
-    id: 'profile-1',
-    name: 'Standard 4K (Stub)',
-    resolution: '3840x2160',
-    config: {},
-  },
-  {
-    id: 'profile-2',
-    name: 'Standard 1080p (Stub)',
-    resolution: '1920x1080',
-    config: {},
-  },
+    profile_id: 'profile-1',
+    name: 'Standard 4K (Full)',
+    resolution: { width: 3840, height: 2160 },
+    parent_window: { x: 2800, y: 400, w: 800, h: 1400 },
+    rarity: { x_rel: 20, y_rel: 20, w: 200, h: 50 },
+    slots: [
+      { id: 0, icon: { x_rel: 30, y_rel: 100, w: 40, h: 40 }, level: { x_rel: 80, y_rel: 100, w: 30, h: 40 } },
+      { id: 1, icon: { x_rel: 30, y_rel: 160, w: 40, h: 40 }, level: { x_rel: 80, y_rel: 160, w: 30, h: 40 } },
+      { id: 2, icon: { x_rel: 30, y_rel: 220, w: 40, h: 40 }, level: { x_rel: 80, y_rel: 220, w: 30, h: 40 } },
+    ],
+    skills: [
+      { id: 0, name: { x_rel: 150, y_rel: 100, w: 300, h: 50 }, level: { x_rel: 460, y_rel: 100, w: 100, h: 50 } },
+      { id: 1, name: { x_rel: 150, y_rel: 220, w: 300, h: 50 }, level: { x_rel: 460, y_rel: 220, w: 100, h: 50 } },
+      { id: 2, name: { x_rel: 150, y_rel: 340, w: 300, h: 50 }, level: { x_rel: 460, y_rel: 340, w: 100, h: 50 } },
+    ],
+    normalization: {
+      bg_point: { x_rel: 90, y_rel: 110 },
+      frame_point: { x_rel: 95, y_rel: 115 },
+    }
+  }
 ];
 
+// Placeholder 4K-ish frame simulation
 export const MOCK_VISION_PREVIEW = {
-  image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', // Transparent 1x1
+  image: 'data:image/webp;base64,UklGRkAAAABXRUJQVlA4IDQAAADwAQCdASoBAAEAAUAmJaQAA3AA/u8AAA=', // WebP 1x1 placeholder
   regions: [],
 };
+
 
 /**
  * Helper to wrap mock data in CommonResponse format

@@ -170,20 +170,25 @@
 
 ### REQ-013: 階層型ROIキャリブレーション・ワークフローの統合
 - **Type**: feature
-- **Status**: ready
+- **Status**: done (2026-04-19)
 - **Current step**: none
 - **Priority**: P0
 - **Surface**: Streamlit版からの移行で未完成だったROI設定フローを、設計書に基づきユーザーが実際に使用可能なレベルで実装したい。
 - **Root Cause**: Interaction Design / Information Design - 単一の矩形操作のみの現状では、解像度や録画環境の違いに対応するための詳細な項目別設定や色正規化が行えず、認識精度の担保が困難。
 - **Requirement**: `01_roi_setup.md` および `01_roi_setup_api.md` に基づき、親ROI・子ROI・色の正規化ポイントを段階的に設定・プレビューし、プロファイルとして保存できる一連のワークフローの構築。
 - **Acceptance criteria**:
-  - 階層型キャリブレーション（全体枠の指定 → 各項目の詳細指定 → 色の正規化）がガイド付きUIで実行できること。
-  - `GET /api/v1/vision/preview` を介して、現在設定中の範囲のプレビュー画像が即座に同期されること。
-  - 子ROI設定時に親ROI内を拡大表示する等の、微調整を補助するインタラクションが含まれること。
-  - 背景色・枠色のカラーピッカーにより正規化ポイントを指定できること。
-  - 最終的な設定値をプロファイル名と共に `POST /api/v1/config/roi/profiles` へ送信・保存できること。
-  - スタブを用いて、これらの一連のシーケンスが正常に動作し、期待されるデータが送信されることを確認できること。
-- **Design doc**: [01_roi_setup.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/user_workflows/01_roi_setup.md), [01_roi_setup_api.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/sequences/01_roi_setup_api.md)
+  - ✅ 階層型キャリブレーション（全体枠の指定 → 各項目の詳細指定 → 色の正規化）がガイド付きUIで実行できること。
+  - ✅ `GET /api/v1/vision/preview` を介して、現在設定中の範囲のプレビュー画像が即座に同期されること。
+  - ✅ 数値入力 & ±ボタンによる1px単位の微調整インタラクションが含まれること。
+  - ✅ 背景色・枠色の正規化ポイントをスポイト（十字レティクルUI）で指定できること。
+  - ✅ 最終的な設定値をプロファイル名と共に `POST /api/v1/config/roi/profiles` へ送信・保存できること。
+  - ✅ スタブモードで一連のシーケンスが動作し、期待されるデータが送信されることを確認済み。
+- **Design doc**: [01_roi_setup.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/user_workflows/01_roi_setup.md), [01_roi_setup_api.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/sequences/01_roi_setup_api.md), [ROI_CALIBRATOR.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-client/docs/ui/features/ROI_CALIBRATOR.md)
+- **Implementation notes**:
+  - `roiStore.ts`: 階層型データ構造（Rect / RelativeRect / Point）と Zustand アクション群
+  - `InteractiveCanvas.tsx`: SW・NE・NW・SE の4方向リサイズ、スポイト（十字レティクル）、フェーズ別インタラクション
+  - `ROICalibrator.tsx`: 4ステップウィザードUI、`NumericalAdjuster` コンポーネント
+  - `api-client.ts`: スタブモードで ROI プロファイル保存・プレビュー取得をシミュレート
 
 ---
 

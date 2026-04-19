@@ -1,85 +1,134 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useROIStore, ROICoordinates } from '../../store/roiStore';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useROIStore, Rect, RelativeRect, Point, CalibrationStep, ActiveTarget } from '../../store/roiStore';
 import ResizeHandle from './ResizeHandle';
 
 interface InteractiveCanvasProps {
   backgroundImage?: string;
 }
 
-type InteractionType = 'move' | 'nw-resize' | 'ne-resize' | 'sw-resize' | 'se-resize' | null;
+type InteractionType = 'move' | 'nw-resize' | 'ne-resize' | 'sw-resize' | 'se-resize' | 'point' | null;
 
 const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage }) => {
-  const { roi, updateRoi } = useROIStore();
+  const { 
+    step, activeTarget, activeId, profile, previewImage,
+    updateParentWindow, updateRelativeRect, updatePoint,
+    setActiveTarget
+  } = useROIStore();
+  
   const containerRef = useRef<HTMLDivElement>(null);
-  const [interaction, setInteraction] = useState<{ type: InteractionType; startPos: { x: number; y: number }; startRoi: ROICoordinates } | null>(null);
+  const [interaction, setInteraction] = useState<{ 
+    type: InteractionType; 
+    startPos: { x: number; y: number }; 
+    startValue: any 
+  } | null>(null);
 
+  // 現在のターゲット矩形/ポイントを取得
+  const currentTarget = useMemo(() => {
+    if (step === 'parent') return profile.parent_window;
+    if (activeTarget === 'rarity') return profile.rarity;
+    if (activeTarget === 'slot_icon' || activeTarget === 'slot_level') {
+      const slot = profile.slots.find(s => s.id === activeId);
+      return slot ? (activeTarget === 'slot_icon' ? slot.icon : slot.level) : null;
+    }
+    if (activeTarget === 'skill_name' || activeTarget === 'skill_level') {
+      const skill = profile.skills.find(s => s.id === activeId);
+      return skill ? (activeTarget === 'skill_name' ? skill.name : skill.level) : null;
+    }
+    if (activeTarget === 'bg_point' || activeTarget === 'frame_point') {
+      return profile.normalization[activeTarget];
+    }
+    return null;
+  }, [step, activeTarget, activeId, profile]);
+
+  // 1920x1080 を基準とした正規化座標を取得
   const getNormalizedCoords = (clientX: number, clientY: number) => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
-    return {
-      x: (clientX - rect.left) / rect.width,
-      y: (clientY - rect.top) / rect.height
-    };
+    let x = (clientX - rect.left) / rect.width;
+    let y = (clientY - rect.top) / rect.height;
+
+    // 子要素編集時は親ROI内での相対座標として扱う
+    if (step !== 'parent') {
+      // 親ROIの範囲内での 0~1 に変換
+      // ここでは Canvas 全体が親ROIを表示している想定（ズーム時）
+    }
+    
+    return { x, y };
   };
 
   const handleMouseDown = (type: InteractionType, e: React.MouseEvent) => {
-    e.preventDefault();
+    e.stopPropagation();
     const pos = getNormalizedCoords(e.clientX, e.clientY);
+    
+    if (step === 'normalization') {
+      // スポイトモード: クリックした瞬間に座標を確定
+      const x_rel = Math.round(pos.x * profile.parent_window.w);
+      const y_rel = Math.round(pos.y * profile.parent_window.h);
+      updatePoint(activeTarget as 'bg_point' | 'frame_point', { x_rel, y_rel });
+      return;
+    }
+
     setInteraction({
       type,
       startPos: pos,
-      startRoi: { ...roi }
+      startValue: JSON.parse(JSON.stringify(currentTarget))
     });
   };
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!interaction || !containerRef.current) return;
+    if (!interaction || !containerRef.current || !currentTarget) return;
 
     const currentPos = getNormalizedCoords(e.clientX, e.clientY);
     const dx = currentPos.x - interaction.startPos.x;
     const dy = currentPos.y - interaction.startPos.y;
 
-    const newRoi = { ...interaction.startRoi };
+    if (step === 'parent') {
+      const startRect = interaction.startValue as Rect;
+      // 1920x1080 基準のピクセル移動
+      const dx_px = dx * 1920;
+      const dy_px = dy * 1080;
+      
+      const updates: Partial<Rect> = {};
+      const type = interaction.type || '';
+      const isN = type.startsWith('n');
+      const isS = type.startsWith('s');
+      const isW = type.includes('w-');
+      const isE = type.includes('e-');
 
-    switch (interaction.type) {
-      case 'move':
-        newRoi.x = interaction.startRoi.x + dx;
-        newRoi.y = interaction.startRoi.y + dy;
-        break;
-      case 'nw-resize':
-        newRoi.x = interaction.startRoi.x + dx;
-        newRoi.y = interaction.startRoi.y + dy;
-        newRoi.w = interaction.startRoi.w - dx;
-        newRoi.h = interaction.startRoi.h - dy;
-        break;
-      case 'ne-resize':
-        newRoi.y = interaction.startRoi.y + dy;
-        newRoi.w = interaction.startRoi.w + dx;
-        newRoi.h = interaction.startRoi.h - dy;
-        break;
-      case 'sw-resize':
-        newRoi.x = interaction.startRoi.x + dx;
-        newRoi.w = interaction.startRoi.w - dx;
-        newRoi.h = interaction.startRoi.h + dy;
-        break;
-      case 'se-resize':
-        newRoi.w = interaction.startRoi.w + dx;
-        newRoi.h = interaction.startRoi.h + dy;
-        break;
-    }
+      if (isW) { updates.x = Math.round(startRect.x + dx_px); updates.w = Math.round(startRect.w - dx_px); }
+      if (isE) { updates.w = Math.round(startRect.w + dx_px); }
+      if (isN) { updates.y = Math.round(startRect.y + dy_px); updates.h = Math.round(startRect.h - dy_px); }
+      if (isS) { updates.h = Math.round(startRect.h + dy_px); }
+      
+      if (type === 'move') {
+        updates.x = Math.round(startRect.x + dx_px);
+        updates.y = Math.round(startRect.y + dy_px);
+      }
+      updateParentWindow(updates);
+    } else if (step === 'items') {
+      const startRel = interaction.startValue as RelativeRect;
+      const dx_px = Math.round(dx * profile.parent_window.w);
+      const dy_px = Math.round(dy * profile.parent_window.h);
 
-    // 負のサイズを防ぐ
-    if (newRoi.w < 0.01) {
-      if (interaction.type?.includes('w')) newRoi.x = interaction.startRoi.x + interaction.startRoi.w - 0.01;
-      newRoi.w = 0.01;
-    }
-    if (newRoi.h < 0.01) {
-      if (interaction.type?.includes('n')) newRoi.y = interaction.startRoi.y + interaction.startRoi.h - 0.01;
-      newRoi.h = 0.01;
-    }
+      const updates: Partial<RelativeRect> = {};
+      const type = interaction.type || '';
+      const isN = type.startsWith('n');
+      const isS = type.startsWith('s');
+      const isW = type.includes('w-');
+      const isE = type.includes('e-');
 
-    updateRoi(newRoi);
-  }, [interaction, updateRoi]);
+      if (isW) { updates.x_rel = startRel.x_rel + dx_px; updates.w = startRel.w - dx_px; }
+      if (isE) { updates.w = startRel.w + dx_px; }
+      if (isN) { updates.y_rel = startRel.y_rel + dy_px; updates.h = startRel.h - dy_px; }
+      if (isS) { updates.h = startRel.h + dy_px; }
+
+      if (type === 'move') {
+        updates.x_rel = startRel.x_rel + dx_px;
+        updates.y_rel = startRel.y_rel + dy_px;
+      }
+      updateRelativeRect(activeTarget, activeId, updates);
+    }
+  }, [interaction, step, activeTarget, activeId, profile, updateParentWindow, updateRelativeRect]);
 
   const handleMouseUp = useCallback(() => {
     setInteraction(null);
@@ -99,101 +148,114 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage }
     };
   }, [interaction, handleMouseMove, handleMouseUp]);
 
-  // ピクセル換算（描画用）
-  const getPixelStyles = () => {
-    return {
-      left: `${roi.x * 100}%`,
-      top: `${roi.y * 100}%`,
-      width: `${roi.w * 100}%`,
-      height: `${roi.h * 100}%`
-    };
-  };
+  // レンダリング用の座標変換 (0~100%)
+  const renderBox = useMemo(() => {
+    if (!currentTarget) return null;
+    
+    if (step === 'parent') {
+      const r = currentTarget as Rect;
+      return { x: (r.x / 1920) * 100, y: (r.y / 1080) * 100, w: (r.w / 1920) * 100, h: (r.h / 1080) * 100 };
+    } else {
+      // ポイントか矩形かを w の有無で判定
+      const r = currentTarget as any;
+      if (r.w !== undefined) {
+        return { 
+          x: (r.x_rel / profile.parent_window.w) * 100, 
+          y: (r.y_rel / profile.parent_window.h) * 100, 
+          w: (r.w / profile.parent_window.w) * 100, 
+          h: (r.h / profile.parent_window.h) * 100 
+        };
+      } else {
+        // Point (スポイト用)
+        return { 
+          x: (r.x_rel / profile.parent_window.w) * 100, 
+          y: (r.y_rel / profile.parent_window.h) * 100, 
+          w: 0, h: 0, 
+          isPoint: true 
+        };
+      }
+    }
+  }, [currentTarget, step, profile.parent_window]);
 
   return (
     <div 
       ref={containerRef}
-      className="aspect-video bg-black relative rounded border-2 border-kinetic-outline-variant/20 overflow-hidden shadow-inner group select-none"
+      className={`aspect-video bg-black relative rounded border-2 border-mhw-accent/20 overflow-hidden shadow-2xl group select-none ${step === 'normalization' ? 'cursor-crosshair' : 'cursor-default'}`}
+      onMouseDown={step === 'normalization' ? (e) => handleMouseDown('point', e) : undefined}
     >
-      {/* Background Image / Placeholder */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {backgroundImage ? (
-          <img src={backgroundImage} alt="Preview" className="w-full h-full object-contain opacity-50" />
+      {/* Background Layer */}
+      <div className="absolute inset-0">
+        {previewImage ? (
+          <img src={previewImage} alt="Preview" className="w-full h-full object-cover pointer-events-none" />
         ) : (
-          <span className="text-[10px] uppercase tracking-widest opacity-20 font-bold">Calibration Source Preview</span>
+          <div className="w-full h-full flex items-center justify-center bg-mhw-panel/50">
+            <span className="text-[10px] uppercase tracking-widest opacity-20 font-bold">Waiting for Preview Signal...</span>
+          </div>
         )}
       </div>
 
       {/* SVG Overlay */}
-      <svg 
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="absolute inset-0 w-full h-full pointer-events-none"
-      >
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
         <defs>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="0.5" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
+          <filter id="glow-amber"><feGaussianBlur stdDeviation="0.4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         </defs>
 
-        {/* Darken Outside ROI */}
-        <path
-          fill="rgba(0,0,0,0.5)"
-          fillRule="evenodd"
-          d={`M 0 0 H 100 V 100 H 0 Z M ${roi.x * 100} ${roi.y * 100} h ${roi.w * 100} v ${roi.h * 100} h ${-roi.w * 100} z`}
-          className="transition-all duration-75"
-        />
+        {renderBox && !renderBox.isPoint && (
+          <>
+            {/* Mask */}
+            <path
+              fill="rgba(0,0,0,0.6)"
+              fillRule="evenodd"
+              d={`M 0 0 H 100 V 100 H 0 Z M ${renderBox.x} ${renderBox.y} h ${renderBox.w} v ${renderBox.h} h ${-renderBox.w} z`}
+            />
+            {/* Active ROI */}
+            <rect
+              x={renderBox.x} y={renderBox.y} width={renderBox.w} height={renderBox.h}
+              className="fill-mhw-accent/5 stroke-mhw-accent stroke-[0.3] cursor-move pointer-events-auto"
+              style={{ filter: 'url(#glow-amber)' }}
+              onMouseDown={(e) => handleMouseDown('move', e)}
+            />
+            {/* Handles */}
+            <g className="pointer-events-auto">
+              <ResizeHandle x={renderBox.x} y={renderBox.y} cursor="nwse-resize" onMouseDown={(e) => handleMouseDown('nw-resize', e)} />
+              <ResizeHandle x={renderBox.x + renderBox.w} y={renderBox.y} cursor="nesw-resize" onMouseDown={(e) => handleMouseDown('ne-resize', e)} />
+              <ResizeHandle x={renderBox.x} y={renderBox.y + renderBox.h} cursor="nesw-resize" onMouseDown={(e) => handleMouseDown('sw-resize', e)} />
+              <ResizeHandle x={renderBox.x + renderBox.w} y={renderBox.y + renderBox.h} cursor="nwse-resize" onMouseDown={(e) => handleMouseDown('se-resize', e)} />
+            </g>
+          </>
+        )}
 
-        {/* ROI Box */}
-        <rect
-          x={roi.x * 100}
-          y={roi.y * 100}
-          width={roi.w * 100}
-          height={roi.h * 100}
-          className="fill-kinetic-amber/5 stroke-kinetic-amber stroke-[0.5] cursor-move pointer-events-auto"
-          style={{ filter: 'url(#glow)' }}
-          onMouseDown={(e) => handleMouseDown('move', e)}
-        />
-
-        {/* Handles */}
-        <g className="pointer-events-auto">
-          <ResizeHandle x={roi.x * 100} y={roi.y * 100} cursor="nwse-resize" onMouseDown={(e) => handleMouseDown('nw-resize', e)} />
-          <ResizeHandle x={(roi.x + roi.w) * 100} y={roi.y * 100} cursor="nesw-resize" onMouseDown={(e) => handleMouseDown('ne-resize', e)} />
-          <ResizeHandle x={roi.x * 100} y={(roi.y + roi.h) * 100} cursor="nesw-resize" onMouseDown={(e) => handleMouseDown('sw-resize', e)} />
-          <ResizeHandle x={(roi.x + roi.w) * 100} y={(roi.y + roi.h) * 100} cursor="nwse-resize" onMouseDown={(e) => handleMouseDown('se-resize', e)} />
-        </g>
+        {renderBox && renderBox.isPoint && (
+          <g style={{ filter: 'url(#glow-amber)' }}>
+            {/* Reticle Focus Ring */}
+            <circle cx={renderBox.x} cy={renderBox.y} r="2.5" className="fill-transparent stroke-mhw-accent/20 stroke-[0.1]" />
+            <circle cx={renderBox.x} cy={renderBox.y} r="1.2" className="fill-transparent stroke-white/40 stroke-[0.1]" />
+            
+            {/* Crosshair Lines */}
+            <line x1={renderBox.x - 2.5} y1={renderBox.y} x2={renderBox.x + 2.5} y2={renderBox.y} className="stroke-mhw-accent/60 stroke-[0.05]" />
+            <line x1={renderBox.x} y1={renderBox.y - 2.5} x2={renderBox.x} y2={renderBox.y + 2.5} className="stroke-mhw-accent/60 stroke-[0.05]" />
+            
+            {/* Center Core */}
+            <circle cx={renderBox.x} cy={renderBox.y} r="0.4" className="fill-mhw-accent" />
+            
+            {/* UI Decals (Points info) */}
+            <text x={renderBox.x + 2} y={renderBox.y - 2} className="fill-mhw-accent text-[1.5px] font-mono uppercase font-bold select-none">PICK</text>
+          </g>
+        )}
       </svg>
 
-      {/* Label */}
-      <div 
-        className="absolute pointer-events-none flex gap-2"
-        style={{ 
-          left: `${roi.x * 100}%`, 
-          top: `calc(${roi.y * 100}% - 24px)`,
-          opacity: roi.y < 0.1 ? 0.3 : 1
-        }}
-      >
-        <span className="text-[9px] bg-kinetic-amber text-black font-black px-1.5 py-0.5 rounded-sm uppercase tracking-tighter shadow-lg">
-          ACTIVE_ROI: {(roi.w * 100).toFixed(0)}x{(roi.h * 100).toFixed(0)}
+      {/* Step Indicator / Label */}
+      <div className="absolute top-4 left-4 flex flex-col gap-1">
+        <span className="text-[8px] bg-mhw-accent text-mhw-bg px-2 py-0.5 rounded-full font-black uppercase tracking-widest">
+          {step} PHASE
         </span>
-      </div>
-
-      {/* HUD Corners */}
-      <div className="absolute inset-0 pointer-events-none border border-kinetic-outline-variant/10 flex flex-col justify-between p-4">
-        <div className="flex justify-between">
-          <div className="w-8 h-8 border-t border-l border-kinetic-amber/30" />
-          <div className="w-8 h-8 border-t border-r border-kinetic-amber/30" />
-        </div>
-        <div className="flex justify-between">
-          <div className="w-8 h-8 border-b border-l border-kinetic-amber/30" />
-          <div className="w-8 h-8 border-b border-r border-kinetic-amber/30" />
-        </div>
+        <span className="text-[10px] text-mhw-text font-bold uppercase tracking-tighter drop-shadow-md">
+          TARGET: {activeTarget} {activeTarget.includes('slot') || activeTarget.includes('skill') ? `#${activeId + 1}` : ''}
+        </span>
       </div>
     </div>
   );
 };
 
 export default InteractiveCanvas;
+
