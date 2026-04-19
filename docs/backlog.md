@@ -165,4 +165,61 @@
   - 解析完了後、`GET /api/v1/talismans` により取得されたデータがカード一覧にレンダリングされること。
   - 任意のカードを選択しての修正（PATCH）がバックエンドに正しく同期されること。
   - プレビューAPI（ROI確認）が正常に応答し、UIに画像が表示されること。
-- **Design doc**: [USER_WORKFLOW.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/USER_WORKFLOW.md)
+- **Design doc**: 
+---
+
+### REQ-013: 階層型ROIキャリブレーション・ワークフローの統合
+- **Type**: feature
+- **Status**: ready
+- **Current step**: none
+- **Priority**: P0
+- **Surface**: Streamlit版からの移行で未完成だったROI設定フローを、設計書に基づきユーザーが実際に使用可能なレベルで実装したい。
+- **Root Cause**: Interaction Design / Information Design - 単一の矩形操作のみの現状では、解像度や録画環境の違いに対応するための詳細な項目別設定や色正規化が行えず、認識精度の担保が困難。
+- **Requirement**: `01_roi_setup.md` および `01_roi_setup_api.md` に基づき、親ROI・子ROI・色の正規化ポイントを段階的に設定・プレビューし、プロファイルとして保存できる一連のワークフローの構築。
+- **Acceptance criteria**:
+  - 階層型キャリブレーション（全体枠の指定 → 各項目の詳細指定 → 色の正規化）がガイド付きUIで実行できること。
+  - `GET /api/v1/vision/preview` を介して、現在設定中の範囲のプレビュー画像が即座に同期されること。
+  - 子ROI設定時に親ROI内を拡大表示する等の、微調整を補助するインタラクションが含まれること。
+  - 背景色・枠色のカラーピッカーにより正規化ポイントを指定できること。
+  - 最終的な設定値をプロファイル名と共に `POST /api/v1/config/roi/profiles` へ送信・保存できること。
+  - スタブを用いて、これらの一連のシーケンスが正常に動作し、期待されるデータが送信されることを確認できること。
+- **Design doc**: [01_roi_setup.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/user_workflows/01_roi_setup.md), [01_roi_setup_api.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/sequences/01_roi_setup_api.md)
+
+---
+
+### REQ-014: サーバー API スタブ・モードの実装（結合の分離と切り分けの容易化）
+- **Type**: enhancement
+- **Status**: done (2026-04-19)
+- **Current step**: none
+- **Priority**: P1
+- **Surface**: 「サーバ側に問題があってもいいように、スタブを作りたい。E2Eでの不具合切り分けも容易にしたい。UIで切り替え可能にしたい。」
+- **Root Cause**: **Technical Integration / Interaction Design** - バックエンドAPIの完成度や安定性にフロントエンド開発が依存しており、開発の停滞やE2Eテスト失敗時の原因切り分け（FEかBEか）に多大な時間を要しているため。
+- **Requirement**: `openapi.yaml` の仕様に基づいた API スタブ機能を実装する。UI上の設定等で「Live（実サーバー）」と「Stub（モック）」を動的に切り替えるモードを導入し、サーバーの状態に左右されない確定的なワークフロー検証環境を提供する。
+- **Acceptance criteria**:
+  - UI上の設定パネル等で、API通信モードを「Live」と「Stub」で切り替えられること。
+  - 「Stub」モード時、`openapi.yaml` のスキーマに準拠したモックデータ（プレビュー画像、ジョブステータス、保存成功レスポンス等）が返却されること。
+  - 通信エラー等の異常系シナリオもスタブ側で擬似的に再現できること。
+  - 開発者が実サーバーの実装を待たずに、UIコンポーネントやビジネスロジックの結合試験を完遂できること。
+  - E2Eテストやデバッグ時に、フロントエンド側の問題かバックエンド側の問題かを即座に切り分けられること。
+- **Design doc**: [openapi.yaml](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/openapi.yaml)
+
+---
+
+### REQ-015: SSE 駆動型ビデオ解析ワークフローの構築
+- **Type**: feature
+- **Status**: ready
+- **Current step**: none
+- **Priority**: P0
+- **Surface**: 「メインの解析ワークフローを実現するための、フロント側機能を構築したい。同期はREQ-013とおなじ」
+- **Root Cause**: **Information Design / Interaction** - 従来の単純なポーリングやバッチ的な一覧表示では、長時間かかるビデオ解析においてユーザーを待機させてしまう。最新仕様（SSEによる進捗通知）に基づき、「見つかった側からカードを表示・編集できる」というプログレッシブなUXが欠落しているため。
+- **Requirement**: `02_analysis.md` および `02_analysis_api.md` の仕様に準拠し、SSEによるリアルタイム通知を受け取り、解析完了を待たずに各護石データを順次表示・修正・保存できる高度な解析ワークフローUIの構築。
+- **Acceptance criteria**:
+  - 動画アップロードから解析開始、SSEイベントの購読までが一連のフローとして統合されていること。
+  - `capture_extracted` イベント受信時に、一覧へ即座に「解析中カード」が追加レンダリングされること。
+  - `talisman_analyzed` イベント受信時に、カード内容が最終結果（OCR内容）へ更新され、即座に手動修正が可能になること。
+  - ジョブ全体の完了ステータスに関わらず、解析済みの各カードに対して独立して PATCH 通信（修正保存）ができること。
+  - 進捗イベント (`progress`) に基づき、MHW風のプログレスバーが滑らかに更新されること。
+  - 解析の中止 (`POST /analyze/cancel`) 操作と、中断時のUI状態整合性が確保されていること。
+- **Design doc**: [02_analysis.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/user_workflows/02_analysis.md), [02_analysis_api.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/sequences/02_analysis_api.md)
+
+
