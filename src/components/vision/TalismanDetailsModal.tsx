@@ -27,12 +27,6 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
     setEdited({ ...edited, skills: newSkills });
   };
 
-  const updateSlot = (index: number, value: number) => {
-    const newSlots = [...edited.slots];
-    newSlots[index] = value;
-    setEdited({ ...edited, slots: newSlots });
-  };
-
   // Mock Waveform Generator for Slot Profile
   const renderWaveform = (seed: number) => {
     const points = Array.from({ length: 20 }, (_, i) => ({
@@ -132,16 +126,19 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <label className="font-label-tech text-white/10 text-[9px] uppercase">Extraction Confidence</label>
-                  <div className="font-space-tech text-2xl font-black text-kinetic-amber">{(talisman.confidence * 100).toFixed(2)}<span className="text-xs opacity-40 ml-1">%</span></div>
+                  <div className="font-space-tech text-2xl font-black text-kinetic-amber">{(edited.rarity.confidence * 100).toFixed(2)}<span className="text-xs opacity-40 ml-1">%</span></div>
                   <div className="h-0.5 bg-white/5 w-full">
-                    <div className="h-full bg-kinetic-amber" style={{ width: `${talisman.confidence * 100}%` }} />
+                    <div className="h-full bg-kinetic-amber" style={{ width: `${edited.rarity.confidence * 100}%` }} />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="font-label-tech text-white/10 text-[9px] uppercase">Manual Tier Override</label>
                   <select 
-                    value={edited.rarity}
-                    onChange={(e) => setEdited({ ...edited, rarity: parseInt(e.target.value) })}
+                    value={edited.rarity.value}
+                    onChange={(e) => setEdited({ 
+                      ...edited, 
+                      rarity: { ...edited.rarity, value: parseInt(e.target.value) } 
+                    })}
                     className="w-full bg-surface-lowest border-none rounded-tech px-4 py-4 text-sm font-space-tech font-black text-on-surface appearance-none focus:ring-0"
                   >
                     {[...Array(12)].map((_, i) => (
@@ -160,10 +157,18 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
               </div>
 
               <div className="flex gap-4">
-                {edited.slots.map((slot, idx) => (
+                {edited.slots.value.map((slot, idx) => (
                   <button 
                     key={idx}
-                    onClick={() => updateSlot(idx, (slot + 1) % 5)}
+                    onClick={() => {
+                       const nextVal = (slot + 1) % 5;
+                       const newSlotValues = [...edited.slots.value];
+                       newSlotValues[idx] = nextVal;
+                       setEdited({ 
+                         ...edited, 
+                         slots: { ...edited.slots, value: newSlotValues } 
+                       });
+                    }}
                     className="flex-1 bg-surface-lowest p-4 rounded-tech flex flex-col gap-4 group/slot hover:bg-surface-high transition-all border border-white/0 hover:border-white/5"
                   >
                     <div className="flex justify-between items-start">
@@ -181,7 +186,7 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
                        </div>
                        <div className="flex flex-col">
                           <span className="font-label-tech text-[7px] text-white/20">B (BG)</span>
-                          <span className="font-space-tech text-[9px] font-black text-white/40">0.{Math.floor(Math.random() * 20)}</span>
+                          <span className="font-space-tech text-[9px] font-black text-white/40">{(edited.slots.confidence).toFixed(2)}</span>
                        </div>
                     </div>
                   </button>

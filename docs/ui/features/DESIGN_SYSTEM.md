@@ -90,6 +90,25 @@ border-r                      border-l
 
 ---
 
+### 6-2. Analysis Monitor HUD (REQ-015)
+> `src/components/vision/AnalysisMonitor.tsx` に定義。解析中の状況を俯瞰するテクニカル・モニター。
+
+**デザイン構成**:
+1. **Kinetic Progress Bar**:
+   - `kinetic-blue` の発光色を使用し、内部を「Energy Flow」アニメーションが流れる。
+   - 10個の「Progress Pips」が 10% 刻みで点灯し、全体の達成率を強調する。
+2. **Live Discovery Cards**:
+   - 解析で見つかった最新の3件を右側のスタックに表示。
+   - `capture_id` の下4桁を `UNIT_XXXX` 形式で表示し、抽出直後は `PROCESSING` ラベルが点滅する。
+3. **Tactical Stat Header**:
+   - `Activity` アイコンがパルス発光し、現在の Job ID や接続ステータスをテクニカル・ラベルとして表示。
+
+**インタラクション**:
+- `ABORT TACTICAL SCAN`: 危険を示す `kinetic-danger` 色を採用し、ホバー時に拡大・発光する。
+- **Auto-Sync**: ジョブ開始時に他画面から自動遷移し、完了またはキャンセルで解除される。
+
+---
+
 ## 7. SVG インタラクションパターン
 
 > SVGオーバーレイを用いた高度な描画は `InteractiveCanvas.tsx` を参照。

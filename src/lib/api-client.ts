@@ -44,10 +44,12 @@ apiClient.interceptors.request.use((config) => {
     } else if (url.includes('/analyze/status')) {
       data = mockData.MOCK_ANALYSIS_STATUS;
     } else if (url.includes('/analyze/video')) {
-      data = { job_id: 'mock-job-id' };
+      data = { job_id: `job-${Math.floor(Math.random() * 10000)}` };
+    } else if (url.includes('/analyze/debug_start')) {
+      data = { job_id: `debug-job-${Math.floor(Math.random() * 10000)}` };
+    } else if (url.includes('/analyze/start/')) {
+      data = { status: 'success', message: 'Analysis started (Stub)' };
     } else if (url.includes('/vision/preview')) {
-      // Return the image directly as data if that's what the component expects
-      // Or wrap it in success if uses CommonResponse
       data = mockData.MOCK_VISION_PREVIEW; 
     } else if (url.includes('/config/roi/profiles')) {
       if (config.method === 'post') {
@@ -56,6 +58,8 @@ apiClient.interceptors.request.use((config) => {
       } else {
         data = mockData.MOCK_ROI_PROFILES;
       }
+    } else if (url.includes('/analyze/cancel')) {
+      data = { status: 'success', message: 'Stub: Job cancellation requested' };
     } else {
       data = { message: 'Stub: Operation successful' };
     }
