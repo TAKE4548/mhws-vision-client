@@ -14,7 +14,7 @@ const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo'];
 export const VideoUploader: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const startAnalysis = useVisionStore((state) => state.startAnalysis);
+  const { uploadVideo, startLocalAnalysis } = useVisionStore();
 
   const validateAndUpload = useCallback((file: File) => {
     setLocalError(null);
@@ -29,8 +29,8 @@ export const VideoUploader: React.FC = () => {
       return;
     }
 
-    startAnalysis(file);
-  }, [startAnalysis]);
+    uploadVideo(file);
+  }, [uploadVideo]);
 
   const onDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -100,7 +100,7 @@ export const VideoUploader: React.FC = () => {
           </div>
         </div>
 
-        {/* Decorative corner lines - MHW Style */}
+        {/* Decorative corner lines */}
         <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-mhw-accent/40" />
         <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-mhw-accent/40" />
         <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-mhw-accent/40" />
@@ -113,6 +113,35 @@ export const VideoUploader: React.FC = () => {
           <p className="text-sm text-mhw-danger">{localError}</p>
         </div>
       )}
+
+      {/* Debug/Verification: Local Path Input */}
+      <div className="mt-12 pt-8 border-t border-mhw-accent/20">
+        <div className="text-center mb-4">
+          <p className="text-[10px] uppercase tracking-widest text-mhw-accent/40 font-bold">Debug / Dev Override</p>
+        </div>
+        <form 
+          onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const path = formData.get('localPath') as string;
+            if (path) startLocalAnalysis(path);
+          }}
+          className="flex gap-2"
+        >
+          <input
+            name="localPath"
+            type="text"
+            placeholder="サーバー上の絶対パスを入力 (e.g. C:\Users\...)"
+            className="flex-1 bg-mhw-panel border border-mhw-accent/20 px-4 py-2 text-sm focus:border-mhw-accent/60 outline-none transition-colors"
+          />
+          <button
+            type="submit"
+            className="mhw-button px-4 py-2 whitespace-nowrap text-xs"
+          >
+            解析開始 (Path)
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

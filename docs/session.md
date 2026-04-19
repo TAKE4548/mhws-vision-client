@@ -1,23 +1,22 @@
-# Development Session: ROIインタラクティブ設定 (REQ-007)
+# Development Session: メインワークフローのE2E疎通確認・修正 (REQ-011)
 
-- **State**: inactive
+- **State**: active
 - **Start Date**: 2026-04-19
-- **End Date**: 2026-04-19
+- **End Date**: 
 - **Target REQs**:
-  - REQ-007: ROI設定用 Canvas インタラクション (Interactive ROI Selection)
-- **Branch**: `feat/REQ-007-roi-canvas`
+  - REQ-011: メインワークフローのE2E疎通確認・修正
+- **Branch**: `feat/REQ-011-e2e-verification`
 - **Coordinator**: AntiGravity
-- **Current Step**: Step 8 (Finalization)
+- **Current Step**: Step 3 (High-Level Design)
 
 ## Objectives
-- Implement an interactive canvas for ROI selection and adjustment.
-- Add resize handles (corners/edges) for precise coordination.
-- Sync ROI coordinates with Zustand store.
-- Ensure compatibility with backend ROI configuration format.
+- `USER_WORKFLOW.md` に基づき、動画アップロードから解析、一覧表示、編集保存までの一連のフローを完結させる。
+- フロントエンド（Vite）とバックエンド（FastAPI）間のAPI接続およびデータ整合性を検証・修正する。
+- ブラウザ上の実機検証を通じて、ユーザー体験のボトルネック（Wiringミス、待機表示の欠如等）を解消する。
 
 ## Progress Track
-- [x] High-Level Design & Impact Analysis
-- [x] UX Specification for Interaction
-- [x] Canvas Component Implementation (Draggable/Resizable)
-- [x] Zustand Store Integration
-- [x] Verification with Mock/Live Preview
+- [/] Step 3: High-Level Design (Architect)
+- [ ] Step 4: UI/UX Specification (UX Designer) - ※必要に応じて
+- [ ] Step 6: Implementation & Browser Verification (Engineer)
+- [ ] Step 7: Verification & Review (Tester)
+- [ ] Step 8: Finalization (Coordinator)

@@ -149,3 +149,20 @@
   - 修正完了時、`PATCH /api/v1/talismans/{id}` へのリクエストが正しく発行されること。
 - **Design doc**: none
 
+---
+
+### REQ-011: メインワークフローのE2E疎通確認・修正
+- **Type**: task
+- **Status**: ready
+- **Current step**: none
+- **Priority**: P0
+- **Surface**: 動画アップロードから解析、一覧表示、編集保存までのメインフローがバックエンドと連携して動作することを確認したい。
+- **Root Cause**: Interaction / Information Design - 個別コンポーネントの実装は進んでいるが、プロトタイプ全体を通じたAPI疎通とステート同期が未検証であり、主要ユースケースの可用性が保証されていない。
+- **Requirement**: `USER_WORKFLOW.md` に定義された一連のフロー（アップロード→進捗監視→一覧表示→手動修正）を実際にブラウザ上で実行し、API疎通エラーの解消とUIフィードバックの整合性を確保する。
+- **Acceptance criteria**:
+  - 動画ファイルのアップロード及びジョブIDの発行が正常に行われること。
+  - 解析中の進捗状況（progress）がUIへリアルタイムに反映されること。
+  - 解析完了後、`GET /api/v1/talismans` により取得されたデータがカード一覧にレンダリングされること。
+  - 任意のカードを選択しての修正（PATCH）がバックエンドに正しく同期されること。
+  - プレビューAPI（ROI確認）が正常に応答し、UIに画像が表示されること。
+- **Design doc**: [USER_WORKFLOW.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/USER_WORKFLOW.md)

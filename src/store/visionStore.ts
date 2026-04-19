@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { apiClient } from '../lib/api-client';
 
+export type JobStatus = 'idle' | 'pending' | 'processing' | 'completed' | 'failed';
+
 export interface Talisman {
-  capture_id: string;
+  id: string; // capture_id mapped to id
   rarity: number;
   slots: number[];
   skills: {
@@ -15,153 +17,172 @@ export interface Talisman {
 }
 
 interface VisionState {
-  isAnalyzing: boolean;
+  status: JobStatus;
   currentJobId: string | null;
   progress: number;
+  isAnalyzing: boolean; // Add this
   currentThumbnail: string | null;
   talismans: Talisman[];
   error: string | null;
   
-  startAnalysis: (file: File) => Promise<void>;
-  pollStatus: () => Promise<void>;
+  uploadVideo: (file: File) => Promise<void>;
+  startLocalAnalysis: (path: string) => Promise<void>;
+  pollStatus: () => void;
   fetchResults: () => Promise<void>;
-  updateTalisman: (updatedTalisman: Talisman) => void;
+  updateTalisman: (id: string, updates: Partial<Talisman>) => Promise<void>;
   reset: () => void;
 }
 
 let pollInterval: number | null = null;
 
 export const useVisionStore = create<VisionState>((set, get) => ({
-  isAnalyzing: false,
+  status: 'idle',
   currentJobId: null,
   progress: 0,
+  isAnalyzing: false, // Initial value
   currentThumbnail: null,
-  talismans: [
-    {
-      capture_id: 'mock_talisman_001',
-      rarity: 12,
-      slots: [4, 2, 1],
-      skills: [
-        { name: 'Attack Boost', level: 7, confidence: 1.0 },
-        { name: 'Weakness Exploit', level: 3, confidence: 0.95 }
-      ],
-      confidence: 0.98,
-      validation_status: 'valid'
-    },
-    {
-      capture_id: 'mock_talisman_002',
-      rarity: 11,
-      slots: [3, 3, 0],
-      skills: [
-        { name: 'Critical Eye', level: 5, confidence: 0.88 },
-        { name: 'Critical Boost', level: 2, confidence: 0.82 }
-      ],
-      confidence: 0.85,
-      validation_status: 'valid'
-    },
-    {
-      capture_id: 'mock_talisman_003',
-      rarity: 10,
-      slots: [2, 1, 0],
-      skills: [
-        { name: 'Free Elem/Ammo Up', level: 1, confidence: 0.75 }
-      ],
-      confidence: 0.45,
-      validation_status: 'needs_selection'
-    }
-  ],
+  talismans: [],
   error: null,
 
   reset: () => {
     if (pollInterval) {
-      clearInterval(pollInterval);
+      window.clearInterval(pollInterval);
       pollInterval = null;
     }
     set({
-      isAnalyzing: false,
+      status: 'idle',
       currentJobId: null,
       progress: 0,
+      isAnalyzing: false,
       currentThumbnail: null,
       talismans: [],
       error: null,
     });
   },
 
-  startAnalysis: async (file: File) => {
-    set({ isAnalyzing: true, error: null, progress: 0, currentThumbnail: null });
-    
-    const formData = new FormData();
-    formData.append('file', file);
-
+  uploadVideo: async (file: File) => {
     try {
-      const response = await apiClient.post('/api/v1/analyze/video', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const { job_id } = response.data.data;
-      set({ currentJobId: job_id });
+      get().reset();
+      set({ status: 'pending', progress: 0, isAnalyzing: true });
       
-      // ポーリング開始
+      const formData = new FormData();
+      formData.append('video', file);
+
+      const response = await apiClient.post('/api/v1/analyze/video', formData);
+
+      const { job_id } = response.data;
+      set({ currentJobId: job_id, status: 'processing' });
       get().pollStatus();
     } catch (err: any) {
-      console.error('Upload failed:', err);
+      console.error('[VisionStore] Upload failed:', err);
       set({ 
-        isAnalyzing: false, 
+        status: 'failed', 
         error: err.response?.data?.message || '動画のアップロードに失敗しました。' 
       });
+      throw err;
     }
   },
 
-  pollStatus: async () => {
+  startLocalAnalysis: async (path: string) => {
+    try {
+      get().reset();
+      set({ status: 'pending', progress: 0, isAnalyzing: true });
+      
+      const response = await apiClient.post('/api/v1/analyze/debug_start', { path });
+
+      const job_id = response.data.data?.job_id || response.data.job_id;
+      if (!job_id) {
+        throw new Error('No job_id returned from server');
+      }
+      
+      set({ currentJobId: job_id, status: 'processing' });
+      get().pollStatus();
+    } catch (err: any) {
+      console.error('[VisionStore] Local analysis trigger failed:', err);
+      set({ 
+        status: 'failed', 
+        error: err.response?.data?.message || 'ローカル解析の開始に失敗しました。' 
+      });
+      throw err;
+    }
+  },
+
+  pollStatus: () => {
     const { currentJobId } = get();
     if (!currentJobId) return;
 
-    if (pollInterval) clearInterval(pollInterval);
+    if (pollInterval) window.clearInterval(pollInterval);
 
     pollInterval = window.setInterval(async () => {
+      const { status } = get();
+      if (status === 'completed' || status === 'failed') {
+        if (pollInterval) window.clearInterval(pollInterval);
+        return;
+      }
+
       try {
         const response = await apiClient.get(`/api/v1/analyze/status/${currentJobId}`);
-        const { status, progress, current_thumbnail } = response.data.data;
+        const jobData = response.data?.data;
+        
+        if (!jobData) {
+          console.warn('[VisionStore] Poll response missing data.data');
+          return;
+        }
+
+        const { status: jobStatus, progress } = jobData;
+
+        const normalizedStatus = jobStatus.toLowerCase() as JobStatus;
 
         set({ 
-          progress: progress || 0,
-          currentThumbnail: current_thumbnail || null 
+          status: normalizedStatus,
+          progress: progress || 0 
         });
 
-        if (status === 'completed') {
-          if (pollInterval) clearInterval(pollInterval);
+        if (normalizedStatus === 'completed') {
+          if (pollInterval) window.clearInterval(pollInterval);
           pollInterval = null;
-          await get().fetchResults();
           set({ isAnalyzing: false });
-        } else if (status === 'error') {
-          if (pollInterval) clearInterval(pollInterval);
+          await get().fetchResults();
+        } else if (normalizedStatus === 'failed') {
+          if (pollInterval) window.clearInterval(pollInterval);
           pollInterval = null;
           set({ isAnalyzing: false, error: '解析中にエラーが発生しました。' });
         }
       } catch (err) {
-        console.error('Status poll failed:', err);
-        // 通信エラーでも一旦継続するが、連続失敗時のハンドリングは将来課題
+        console.error('[VisionStore] Status poll failed:', err);
       }
-    }, 2000); // 2秒おきにポーリング
+    }, 2000); 
   },
 
   fetchResults: async () => {
     try {
       const response = await apiClient.get('/api/v1/talismans');
-      set({ talismans: response.data.data });
+      const mappedTalismans = response.data.map((t: any) => ({
+        ...t,
+        id: t.capture_id,
+      }));
+      set({ 
+        talismans: mappedTalismans,
+        isAnalyzing: false 
+      });
     } catch (err) {
-      console.error('Fetch results failed:', err);
+      console.error('[VisionStore] Fetch results failed:', err);
       set({ error: '解析結果の取得に失敗しました。' });
     }
   },
-  
-  updateTalisman: (updatedTalisman) => {
-    set((state) => ({
-      talismans: state.talismans.map((t) => 
-        t.capture_id === updatedTalisman.capture_id ? { ...updatedTalisman, validation_status: 'valid' } : t
-      )
-    }));
+
+  updateTalisman: async (id: string, updates: Partial<Talisman>) => {
+    try {
+      await apiClient.patch(`/api/v1/talismans/${id}`, updates);
+      
+      set((state) => ({
+        talismans: state.talismans.map((t) => 
+          t.id === id ? { ...t, ...updates, validation_status: 'valid' } : t
+        ),
+      }));
+    } catch (err) {
+      console.error('[VisionStore] Update talisman failed:', err);
+      throw err;
+    }
   },
 }));

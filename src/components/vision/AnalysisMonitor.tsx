@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Loader2, Activity, ImageIcon, XCircle } from 'lucide-react';
 import { useVisionStore } from '../../store/visionStore';
 import { clsx, type ClassValue } from 'clsx';
@@ -9,7 +9,13 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export const AnalysisMonitor: React.FC = () => {
-  const { progress, currentThumbnail, reset, error } = useVisionStore();
+  const { status, progress, currentThumbnail, currentJobId, reset, pollStatus, error } = useVisionStore();
+
+  useEffect(() => {
+    if (status === 'processing' && currentJobId) {
+      pollStatus();
+    }
+  }, [status, currentJobId, pollStatus]);
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-700">

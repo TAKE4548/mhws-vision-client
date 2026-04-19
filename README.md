@@ -28,6 +28,16 @@ npm run dev
 npm run build
 ```
 
+## リポジトリ配置要件
+本プロジェクトのエージェント（AntiGravity）は、システム設計の正解（SSoT）を隣接する Server リポジトリから参照します。  
+以下のディレクトリ構造で配置されていることを確認してください：
+```text
+parent_dir/
+├── mhws-vision-client/ (本リポジトリ)
+└── mhws-vision-server/
+```
+配置が異なる場合、エージェントが API 仕様やシステムシーケンスを正しく認識できない可能性があります。
+
 ## 開発ガイドライン
 - **Design System**: 全ての UI は `docs/ui/features/DESIGN_SYSTEM.md` に従ってください。
 - **Linting**: 提出前に `npm run lint` を実行してください。
