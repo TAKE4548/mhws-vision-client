@@ -35,6 +35,11 @@ export default {
         // Outlines (Used at low opacity only)
         'kinetic-outline': '#a08e7a',
         'kinetic-outline-variant': '#534434',
+
+        // Semantic Status Colors (REQ-014)
+        'status-error': '#ef4444',
+        'status-warning': '#f59e0b',
+        'status-success': '#10b981',
       },
       fontFamily: {
         'hud': ['"Noto Sans JP"', 'sans-serif'],

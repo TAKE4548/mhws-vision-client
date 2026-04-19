@@ -24,6 +24,9 @@
 | `on-surface` | `#e0e0e0` | 標準テキスト |
 | `kinetic-amber` | `#ffc174` | プライマリ・アクセント（ゴールド） |
 | `kinetic-blue` | `#adc6ff` | テクニカル・アクセント（ブルー） |
+| `status-error` | `#ef4444` | エラー、Stubモード、危険なアクション |
+| `status-warning` | `#f59e0b` | 注意、未検証データ、処理待ち |
+| `status-success` | `#10b981` | 正常完了、Liveモード通信中 |
 
 ### Typography
 - **Primary**: `Inter` (可読性重視)
