@@ -14,7 +14,9 @@ This document defines specialized technical standards for the frontend repositor
 ## 2. State & Styling
 - **Zustand**: Keep a single global store for talisman data and analysis status.
 - **Tailwind CSS**: Exclusively use utility classes or `@apply` in `index.css`. No inline styles.
-- **Design Integrity**: Refer to `docs/ui/features/DESIGN_SYSTEM.md` for all color and spacing tokens.
+- **Design Integrity**: 
+  - Refer to `docs/ui/features/DESIGN_SYSTEM.md` for color/spacing tokens.
+  - Refer to `docs/ui/specs/` (APP-STRUCTURE.md, SPEC.md, FLOW-TRANSITION.md) for UI architecture and component specifications.
 
 ## 3. Stitch/AI Integration
 - When using Stitch-generated code, normalize it to match project-standard TypeScript interfaces and Tailwind tokens.

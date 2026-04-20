@@ -21,3 +21,9 @@ If the Backend API (`localhost:8000`) is unavailable or lacking specific endpoin
 
 ### [MUST [F-04]] Dynamic Responsive Audit
 Before completing any UI task, the agent MUST verify layout stability across multiple viewport sizes (Mobile, Tablet, Desktop) using the browser sub-agent.
+
+### [MUST [F-05]] UI Specification SSoT Compliance
+Any modification to high-level UI structure, components, or user flows MUST follow these steps:
+1. **Validation**: Read `docs/ui/specs/` to verify alignment with existing architecture.
+2. **Implementation**: Execute changes following the established specs.
+3. **Synchronization**: Update the relevant files in `docs/ui/specs/` (APP-STRUCTURE.md, SPEC.md, or FLOW-TRANSITION.md) to reflect the new state.
