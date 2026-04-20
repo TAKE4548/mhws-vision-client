@@ -289,3 +289,67 @@
 - **Implementation notes**:
   - `ROICalibrator.tsx`: プレビュー画像のリセット処理 (`setPreviewImage(null)`)、非同期フラグ (`canceled`) による解像度同期の整合性確保、ステップバーの `onClick` 遷移。
   - `InteractiveCanvas.tsx`: `actualRatio` ステートによる画像実測比率の優先適用、SVGマスクの常時表示、4ステップ全てでのアスペクト比計算ロジック。
+
+---
+
+### REQ-020: 等幅・等間隔同期 (Equal spacing sync)
+- **Type**: feature
+- **Status**: new
+- **Current step**: none
+- **Priority**: P1
+- **Surface**: スロット1の移動に連動して、他スロットの相対位置を自動更新する。
+- **Root Cause**: Interaction Design - 似た形状が等間隔で並んでいるUIに対し、1つずつ個別に位置合わせをするのは手間であり、精度のバラつきも生じやすいため。
+- **Requirement**: `ROICalibrator` において、スロット1の位置を変更した際に2・3番目のスロットを一定間隔（Gap）を保って追従させる連動機能を実装する。
+- **Acceptance criteria**:
+  - スロット1の `x`, `y` を変更した際、等間隔同期モードがONであればスロット2, 3の座標が自動的に計算・更新されること。
+  - スロット間の「隙間（Gap）」をスライダーや数値入力で調整可能であること。
+  - 連動のON/OFFをユーザーが任意に切り替えられること。
+- **Design doc**: none
+
+---
+
+### REQ-021: ズームプレビュー (Zoom Preview)
+- **Type**: feature
+- **Status**: new
+- **Current step**: none
+- **Priority**: P1
+- **Surface**: 操作対象ROIを拡大表示する「ルーペ」機能。
+- **Root Cause**: Information Design - 数px単位の精密な位置合わせを行う際、標準的なプレビューサイズではディテールが確認しづらいため。
+- **Requirement**: `InteractiveCanvas` での操作中（ドラッグ・ホバー）、操作対象の座標付近を拡大して表示するプレビュー枠（ルーペ）を表示する。拡大処理はフロントエンド側で行う。
+- **Acceptance criteria**:
+  - ROIをドラッグ中、またはマウスホバー中に、対象座標の拡大プレビューが表示されること。
+  - 拡大プレビューには `/api/v1/vision/preview` から取得した画像をフロントエンド側で（CSSまたはCanvasにより）引き延ばして使用すること。
+  - ルーペの表示位置が操作の邪魔にならないこと。
+- **Design doc**: none
+
+---
+
+### REQ-022: キーボード操作 (Keyboard Control)
+- **Type**: feature
+- **Status**: new
+- **Current step**: none
+- **Priority**: P2
+- **Surface**: 矢印キーによる座標の微調整。
+- **Root Cause**: Interaction Design - マウス操作のみでは手のブレ等により1px単位の追い込みが困難であるため。
+- **Requirement**: 選択中のROI（Active ROI）に対して、キーボードの矢印キーで1px単位、Shift+矢印キーで10px単位の座標移動を可能にする。
+- **Acceptance criteria**:
+  - 矢印キー（Up/Down/Left/Right）で、選択中のROIの `x`, `y` が 1px ずつ加減算されること。
+  - Shiftキーを押し下げた状態での矢印キー操作により、10px 単位で移動すること。
+  - キーボード操作による変更が即座にプレビューおよびストアに反映されること。
+- **Design doc**: none
+
+---
+
+### REQ-023: 保存前確認画面 (Pre-save Confirmation)
+- **Type**: feature
+- **Status**: new
+- **Current step**: none
+- **Priority**: P2
+- **Surface**: 設定保存前の最終確認プロセス。
+- **Root Cause**: Information Design / Interaction - 設定した全てのROIについて、保存する前に切り出し結果を一括で確認することで、設定ミス（逆順や座標ズレ）を未然に防ぎたい。
+- **Requirement**: ROIプロファイルの保存ボタン押下後、確定の前に全てのROIのクロップ画像をタイル状に並べて表示する確認用ダイアログ（またはステップ）を挿入する。
+- **Acceptance criteria**:
+  - 保存実行前に、全3スロット（または全項目）の最新クロップ画像が一覧表示されること。
+  - ユーザーが一覧を確認し、「確定（保存）」をクリックした時のみAPIリクエストが発行されること。
+  - 確認画面から調整ステップに戻れること。
+- **Design doc**: none

@@ -63,9 +63,13 @@ export const MOCK_ANALYSIS_COMPLETED = {
 
 export const MOCK_ROI_PROFILES = [
   {
-    profile_id: 'profile-1',
-    name: 'Standard 4K (Full)',
-    resolution: { width: 3840, height: 2160 },
+    id: 'profile-1',
+    name: 'Standard 4K (FHD Mode)',
+    description: '4Kモニターで1920x1080出力時の推奨設定。',
+    resolution: '1920x1080',
+    last_calibrated_at: '2026-04-18T10:00:00Z',
+    created_at: '2026-04-10T08:00:00Z',
+    updated_at: '2026-04-18T10:00:00Z',
     parent_window: { x: 2800, y: 400, w: 800, h: 1400 },
     rarity: { x_rel: 20, y_rel: 20, w: 200, h: 50 },
     slots: [
@@ -81,6 +85,23 @@ export const MOCK_ROI_PROFILES = [
     normalization: {
       bg_point: { x_rel: 90, y_rel: 110 },
       frame_point: { x_rel: 95, y_rel: 115 },
+    }
+  },
+  {
+    id: 'profile-2',
+    name: 'Native 4K (Ultra)',
+    description: '4Kネイティブ出力用の高精度設定。',
+    resolution: '3840x2160',
+    last_calibrated_at: '2026-04-19T15:30:00Z',
+    created_at: '2026-04-12T09:00:00Z',
+    updated_at: '2026-04-19T15:30:00Z',
+    parent_window: { x: 5600, y: 800, w: 1600, h: 2800 },
+    rarity: { x_rel: 40, y_rel: 40, w: 400, h: 100 },
+    slots: [], // 省略
+    skills: [], // 省略
+    normalization: {
+      bg_point: { x_rel: 180, y_rel: 220 },
+      frame_point: { x_rel: 190, y_rel: 230 },
     }
   }
 ];

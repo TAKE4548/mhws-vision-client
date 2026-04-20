@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { apiClient } from '../lib/api-client';
 
 export interface Rect {
   x: number;
@@ -37,7 +38,10 @@ export interface NormalizationPoints {
 }
 
 export interface ROIProfile {
+  profile_id?: string;
   name: string;
+  description?: string;
+  reference_image_url?: string;
   resolution: { width: number; height: number };
   parent_window: Rect;
   rarity: RelativeRect;
@@ -46,7 +50,7 @@ export interface ROIProfile {
   normalization: NormalizationPoints;
 }
 
-export type CalibrationStep = 'parent' | 'items' | 'normalization' | 'save';
+export type CalibrationStep = 'setup' | 'source' | 'parent' | 'items' | 'normalization' | 'save';
 export type ActiveTarget = 'parent' | 'rarity' | 'slot_icon' | 'slot_level' | 'skill_name' | 'skill_level' | 'bg_point' | 'frame_point';
 
 interface ROIState {
@@ -54,17 +58,34 @@ interface ROIState {
   activeTarget: ActiveTarget;
   activeId: number; // For slots/skills (0, 1, 2)
   profile: ROIProfile;
+  
+  // Metadata for the current session/profile
+  profiles: any[]; // ProfileMetadata[] (imported from api-client)
+  selectedProfileId: string | null;
+  description: string;
+  sourceFile: File | null;
+  jobId: string | null;
+  timestampMs: number;
   previewImage: string | null;
+  isLoading: boolean;
+  error: string | null;
   
   setStep: (step: CalibrationStep) => void;
   setActiveTarget: (target: ActiveTarget, id?: number) => void;
   setPreviewImage: (image: string | null) => void;
   setResolution: (width: number, height: number) => void;
+  setDescription: (desc: string) => void;
   
   updateParentWindow: (updates: Partial<Rect>) => void;
   updateRelativeRect: (target: ActiveTarget, id: number, updates: Partial<RelativeRect>) => void;
   updatePoint: (target: 'bg_point' | 'frame_point', updates: Partial<Point>) => void;
   
+  // CRUD Actions
+  fetchProfiles: () => Promise<void>;
+  selectProfile: (id: string | null) => void;
+  deleteProfile: (id: string) => Promise<void>;
+  setSourceFile: (file: File | null) => void;
+  prepareSource: (file: File | string, timestamp: number) => Promise<void>;
   setProfile: (profile: ROIProfile) => void;
   resetProfile: () => void;
 }
@@ -93,12 +114,20 @@ const createDefaultProfile = (): ROIProfile => ({
   }
 });
 
-export const useROIStore = create<ROIState>((set) => ({
-  step: 'parent',
+export const useROIStore = create<ROIState>((set, get) => ({
+  step: 'setup',
   activeTarget: 'parent',
   activeId: 0,
   profile: createDefaultProfile(),
+  profiles: [],
+  selectedProfileId: null,
+  description: '',
+  sourceFile: null,
+  jobId: null,
+  timestampMs: 0,
   previewImage: null,
+  isLoading: false,
+  error: null,
 
   setStep: (step) => set({ step }),
   setActiveTarget: (activeTarget, activeId = 0) => set({ activeTarget, activeId }),
@@ -106,6 +135,90 @@ export const useROIStore = create<ROIState>((set) => ({
   setResolution: (width, height) => set((state) => ({
     profile: { ...state.profile, resolution: { width, height } }
   })),
+  setDescription: (description) => set({ description }),
+
+  fetchProfiles: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const resp = await apiClient.get('/config/roi/profiles');
+      // api-client が自動で response.data.data を剥がして resp.data に入れている
+      set({ profiles: resp.data || [], isLoading: false });
+    } catch (err) {
+      set({ error: 'プロファイル一覧の取得に失敗しました。', isLoading: false });
+    }
+  },
+
+  selectProfile: (id) => {
+    const { profiles } = get();
+    if (!id) {
+      set({ selectedProfileId: null, description: '' });
+      get().resetProfile();
+      return;
+    }
+
+    const selected = profiles.find(p => p.profile_id === id);
+    if (selected) {
+      set({ 
+        selectedProfileId: id, 
+        description: selected.description || '',
+        profile: selected,
+        previewImage: selected.reference_image_url || null
+      });
+    }
+  },
+
+  deleteProfile: async (id) => {
+    try {
+      await apiClient.delete(`/config/roi/profiles/${id}`);
+      get().fetchProfiles();
+    } catch (err) {
+      console.error('Failed to delete profile:', err);
+    }
+  },
+
+  deleteProfile: async (id) => {
+    try {
+      await apiClient.delete(`/config/roi/profiles/${id}`);
+      set(state => ({
+        profiles: state.profiles.filter(p => p.id !== id),
+        selectedProfileId: state.selectedProfileId === id ? null : state.selectedProfileId
+      }));
+    } catch (err) {
+      console.error('[ROIStore] Delete failed:', err);
+      set({ error: 'プロファイルの削除に失敗しました。' });
+    }
+  },
+
+  setSourceFile: (file) => set({ sourceFile: file }),
+
+  prepareSource: async (file, timestamp) => {
+    set({ isLoading: true, error: null });
+    try {
+      let response;
+      if (typeof file === 'string') {
+        // 既存ジョブの再利用
+        response = await apiClient.post('/vision/prepare', { job_id: file, timestamp_ms: timestamp });
+      } else {
+        // 新規アップロード
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('timestamp_ms', timestamp.toString());
+        response = await apiClient.post('/vision/prepare', formData);
+      }
+
+      const { job_id, reference_image_url } = response.data;
+      set({ 
+        jobId: job_id, 
+        timestampMs: timestamp, 
+        previewImage: reference_image_url,
+        isLoading: false 
+      });
+    } catch (err) {
+      console.error('[ROIStore] Prepare failed:', err);
+      set({ error: '画像の抽出に失敗しました。', isLoading: false });
+      throw err;
+    }
+  },
 
   updateParentWindow: (updates) => set((state) => ({
     profile: {
@@ -141,6 +254,16 @@ export const useROIStore = create<ROIState>((set) => ({
   })),
 
   setProfile: (profile) => set({ profile }),
-  resetProfile: () => set({ profile: createDefaultProfile(), step: 'parent', activeTarget: 'parent' }),
+  resetProfile: () => set({ 
+    profile: createDefaultProfile(), 
+    step: 'setup', 
+    activeTarget: 'parent', 
+    selectedProfileId: null, 
+    description: '',
+    sourceFile: null,
+    jobId: null,
+    timestampMs: 0,
+    previewImage: null
+  }),
 }));
 

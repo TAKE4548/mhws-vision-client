@@ -22,12 +22,21 @@ export interface Talisman {
 export interface ROIProfileInfo {
   id: string;
   name: string;
+  description?: string;
+  resolution?: string;
   is_default: boolean;
+}
+
+export interface VideoMeta {
+  width: number;
+  height: number;
+  duration?: number;
 }
 
 interface VisionState {
   status: JobStatus;
   currentJobId: string | null;
+  videoMeta: VideoMeta | null;
   progress: number;
   isAnalyzing: boolean;
   talismans: Talisman[];
@@ -50,6 +59,7 @@ interface VisionState {
 export const useVisionStore = create<VisionState>((set, get) => ({
   status: 'idle',
   currentJobId: null,
+  videoMeta: null,
   progress: 0,
   isAnalyzing: false,
   talismans: [],
@@ -77,9 +87,13 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       formData.append('video', file);
 
       const response = await apiClient.post('/analyze/video', formData);
+      // OpenAPI: CommonResponse[AnalysisJobResponse]
       const { job_id } = response.data;
       
-      set({ currentJobId: job_id });
+      set({ 
+        currentJobId: job_id,
+        videoMeta: null // upload 成功時にはメタデータは返ってこない仕様
+      });
       // We don't start analysis automatically here, UI will trigger startAnalysis
     } catch (err: any) {
       console.error('[VisionStore] Upload failed:', err);
@@ -116,7 +130,7 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       set({ status: 'pending', progress: 0, isAnalyzing: true });
       
       const response = await apiClient.post('/analyze/debug_start', { path });
-      const job_id = response.data.job_id || response.data.data?.job_id;
+      const job_id = response.data?.job_id;
       
       if (!job_id) throw new Error('No job_id returned');
 
@@ -222,9 +236,10 @@ export const useVisionStore = create<VisionState>((set, get) => ({
     try {
       const resp = await apiClient.get(`/analyze/status/${jobId}`);
       if (resp.data) {
+        const job = resp.data;
         set({ 
-          status: resp.data.status.toLowerCase() as JobStatus,
-          progress: resp.data.progress * 100 
+          status: job.status.toLowerCase() as JobStatus,
+          progress: job.progress * 100 
         });
       }
     } catch (err) {
@@ -238,7 +253,7 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       const response = await apiClient.get(url);
       
       set({ 
-        talismans: response.data,
+        talismans: response.data || [],
       });
     } catch (err) {
       console.error('[VisionStore] Fetch results failed:', err);
@@ -248,7 +263,7 @@ export const useVisionStore = create<VisionState>((set, get) => ({
   fetchProfiles: async () => {
     try {
       const response = await apiClient.get('/config/roi/profiles');
-      set({ profiles: response.data });
+      set({ profiles: response.data || [] });
     } catch (err) {
       console.error('[VisionStore] Fetch profiles failed:', err);
     }

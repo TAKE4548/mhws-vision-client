@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react'
-import { Maximize2, Move, Box, Save, History, ChevronRight, ChevronLeft, Target, MousePointer2, Plus, Minus, Eye, EyeOff } from 'lucide-react'
+import React, { useEffect, useState, useRef } from 'react'
+import { Maximize2, Move, Box, Save, History, ChevronRight, ChevronLeft, Target, MousePointer2, Plus, Minus, Eye, EyeOff, Trash2, FilePlus, Settings2, AlertTriangle, Clock, Upload } from 'lucide-react'
 import InteractiveCanvas from './roi/InteractiveCanvas'
 import { useROIStore, CalibrationStep, ActiveTarget, Rect, RelativeRect, Point } from '../store/roiStore'
+import { useVisionStore } from '../store/visionStore'
 import { apiClient } from '../lib/api-client'
 
 const STEPS: { id: CalibrationStep; label: string; description: string }[] = [
-  { id: 'parent', label: '1. Window Area', description: '護石情報の表示範囲を枠で囲んでください。' },
-  { id: 'items', label: '2. Item ROIs', description: 'レア度、スロット、スキルの各項目の枠を微調整します。' },
-  { id: 'normalization', label: '3. Normalization', description: 'スロットの背景色と枠色の基準点をクリックしてください。' },
-  { id: 'save', label: '4. Save Profile', description: '設定に名前を付けて保存します。' },
+  { id: 'setup', label: '0. Setup', description: 'プロファイルを新規作成するか、既存の設定をメンテナンスしてください。' },
+  { id: 'source', label: '1. Source Frame', description: 'キャリブレーションの基準となる動画と時間を指定してください。' },
+  { id: 'parent', label: '2. Window Area', description: '護石情報の表示範囲を枠で囲んでください。' },
+  { id: 'items', label: '3. Item ROIs', description: 'レア度、スロット、スキルの各項目の枠を微調整します。' },
+  { id: 'normalization', label: '4. Normalization', description: 'スロットの背景色と枠色の基準点をクリックしてください。' },
+  { id: 'save', label: '5. Save Profile', description: '設定に名前を付けて保存します。' },
 ];
 
 interface NumericalAdjusterProps {
@@ -51,16 +54,80 @@ const NumericalAdjuster: React.FC<NumericalAdjusterProps> = ({ label, value, onC
 const ROICalibrator = () => {
   const { 
     step, activeTarget, activeId, profile,
-    setStep, setActiveTarget, setPreviewImage,
+    profiles, selectedProfileId, description, sourceFile, jobId, timestampMs, previewImage, isLoading, error,
+    setStep, setActiveTarget, setPreviewImage, setDescription, setSourceFile,
+    fetchProfiles, selectProfile, deleteProfile, prepareSource,
     updateParentWindow, updateRelativeRect, updatePoint, resetProfile 
   } = useROIStore();
 
+  const { videoMeta } = useVisionStore();
+
   const [profileName, setProfileName] = useState('New Profile');
+  const [profileDescription, setProfileDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [videoDuration, setVideoDuration] = useState(0);
+
+  // フロントエンド側でのフレーム抽出 (REQ-020)
+  const captureFrameFE = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState < 2) return;
+
+    try {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/webp');
+        setPreviewImage(dataUrl);
+        // 解像度を自動セット (不要な更新を防ぐため値が違う時のみ)
+        const currentRes = useROIStore.getState().profile.resolution;
+        if (canvas.width !== currentRes.width || canvas.height !== currentRes.height) {
+          useROIStore.getState().setResolution(canvas.width, canvas.height);
+        }
+      }
+    } catch (err) {
+      console.error('[ROICalibrator] Capture error:', err);
+    }
+  };
+
+  // 既存プロファイルが選択されたら名前と説明を同期 (REQ-019)
+  useEffect(() => {
+    if (selectedProfileId && profile) {
+      setProfileName(profile.name || 'New Profile');
+      setProfileDescription(profile.description || '');
+    }
+  }, [selectedProfileId, profile]);
+
+  // sourceFile がセットされたら URL を生成してビデオにロード
+  useEffect(() => {
+    if (sourceFile && videoRef.current) {
+      console.log('[ROICalibrator] Loading source file to video element');
+      const url = URL.createObjectURL(sourceFile);
+      videoRef.current.src = url;
+      // 初期フレームを表示
+      videoRef.current.currentTime = timestampMs / 1000;
+      return () => {
+        console.log('[ROICalibrator] Revoking video source URL');
+        URL.revokeObjectURL(url);
+      };
+    }
+  }, [sourceFile]);
   const [showOverlays, setShowOverlays] = useState(true);
+
+  // 初回ロード時にプロファイル一覧を取得
+  useEffect(() => {
+    fetchProfiles();
+  }, []);
 
   // プレビュー画像の自動更新
   useEffect(() => {
+    // REQ-020: セットアップ中またはソース指定中は、ローカルでのキャプチャを優先するため API フェッチしない
+    if (step === 'setup' || step === 'source') return;
+
     let currentUrl: string | null = null;
     let canceled = false;
 
@@ -88,8 +155,14 @@ const ROICalibrator = () => {
         }
 
         // REQ-019: OpenAPI準拠 (バイナリ取得)
+        const { jobId, selectedProfileId, timestampMs } = useROIStore.getState();
         const response = await apiClient.get('/vision/preview', { 
-          params,
+          params: {
+            ...params,
+            job_id: jobId || undefined,
+            profile_id: selectedProfileId || undefined,
+            timestamp_ms: timestampMs
+          },
           responseType: 'blob' 
         });
 
@@ -138,10 +211,31 @@ const ROICalibrator = () => {
     };
   }, [step, activeTarget, activeId, profile, setPreviewImage]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const currentIndex = STEPS.findIndex(s => s.id === step);
     if (currentIndex < STEPS.length - 1) {
-      const nextStep = STEPS[currentIndex + 1].id;
+      let nextStep = STEPS[currentIndex + 1].id;
+      
+      // 既存プロファイルメンテナンス時は、動画選択(source)をスキップして2. Window Areaへ
+      if (step === 'setup' && selectedProfileId) {
+        nextStep = 'parent';
+      }
+      // Source ステップから進む際のサーバー同期 (REQ-020)
+      if (step === 'source') {
+        if (!previewImage || !sourceFile) {
+          alert('先にキャプチャ画像を確定してください。');
+          return;
+        }
+        try {
+          // サーバーにファイルをアップロードしてコンテキストを作成
+          // ここでは timestampMs は シークバー経由で更新されている想定
+          await prepareSource(sourceFile, timestampMs);
+        } catch (err) {
+          // エラー時は次に進ませない
+          return;
+        }
+      }
+
       setStep(nextStep);
       // Normalizationステップに入ったら、デフォルトで背景ポイントを選択
       if (nextStep === 'normalization') {
@@ -158,13 +252,29 @@ const ROICalibrator = () => {
   };
 
   const handleSave = async () => {
+    const { jobId, timestampMs, selectedProfileId, profile } = useROIStore.getState();
     setIsSaving(true);
     try {
-      await apiClient.post('/config/roi/profiles', {
+      // REQ-019: OpenAPI (ROIProfile) 準拠の平坦な構造
+      const payload = {
         ...profile,
-        name: profileName
-      });
+        name: profileName,
+        description: profileDescription,
+        job_id: jobId,
+        timestamp_ms: timestampMs
+      };
+      
+      if (selectedProfileId) {
+        // 既存更新 (PUT /config/roi/profiles/{id})
+        await apiClient.put(`/config/roi/profiles/${selectedProfileId}`, payload);
+      } else {
+        // 新規作成 (POST /config/roi/profiles)
+        await apiClient.post('/config/roi/profiles', payload);
+      }
+
       alert('Calibration profile saved successfully!');
+      fetchProfiles(); 
+      setStep('setup'); 
     } catch (error) {
       console.error('Failed to save profile:', error);
       alert('Failed to save profile.');
@@ -195,12 +305,66 @@ const ROICalibrator = () => {
 
   const activeData = getCurrentActiveData();
 
+  // 解像度の一致チェック
+  const isResolutionMatched = (profileRes?: string) => {
+    if (!videoMeta || !profileRes) return true; // 情報がない場合は警告しない
+    const currentRes = `${videoMeta.width}x${videoMeta.height}`;
+    return profileRes === currentRes;
+  };
+
   return (
     <div className="grid grid-cols-12 gap-8 animate-in fade-in duration-700">
       {/* Simulation Area */}
       <div className="col-span-8 flex flex-col gap-6">
         <div className="relative group">
-          <InteractiveCanvas showOverlays={showOverlays} />
+          {/* 隠しビデオとキャンバス（常にマウントしておき、Blob URL の消失を防ぐ） */}
+          <div className="hidden">
+            <video 
+              ref={videoRef} 
+              onLoadedMetadata={(e) => {
+                setVideoDuration(e.currentTarget.duration);
+                captureFrameFE();
+              }}
+              onSeeked={captureFrameFE}
+              onCanPlay={captureFrameFE}
+              muted 
+              playsInline
+            />
+            <canvas ref={canvasRef} />
+          </div>
+
+          {step === 'setup' || step === 'source' ? (
+            <div className="aspect-video bg-black/40 rounded border border-white/5 flex flex-col items-center justify-center gap-4 text-mhw-text/30">
+              {step === 'setup' ? (
+                <>
+                  <Settings2 size={48} strokeWidth={1} />
+                  <div className="text-center">
+                    <p className="text-sm font-bold uppercase tracking-widest">Calibration Workflow</p>
+                    <p className="text-[10px] mt-1">プロファイルを選択するか新規作成して開始してください</p>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-8">
+                  {previewImage ? (
+                    <div className="relative w-full h-full flex items-center justify-center animate-in fade-in duration-500">
+                      <img src={previewImage} alt="Capture Preview" className="max-w-full max-h-full object-contain rounded border border-mhw-accent/20" />
+                      <div className="absolute top-4 left-4 px-2 py-1 bg-mhw-accent text-mhw-bg text-[10px] font-bold uppercase rounded">Preview Ready</div>
+                    </div>
+                  ) : (
+                    <>
+                      <FilePlus size={48} strokeWidth={1} />
+                      <div className="text-center mt-4">
+                        <p className="text-sm font-bold uppercase tracking-widest text-mhw-accent/50">Capture Preparation</p>
+                        <p className="text-[10px] mt-1">動画と時間を指定して参照画像を生成してください</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <InteractiveCanvas showOverlays={showOverlays} />
+          )}
           
           <div className="absolute top-4 right-4 flex items-center gap-3">
             {/* Visibility Toggle (REQ-019 Follow-up) */}
@@ -336,11 +500,208 @@ const ROICalibrator = () => {
                 </div>
             )}
 
+            {step === 'setup' && (
+              <div className="space-y-6">
+                <button 
+                  onClick={() => {
+                    resetProfile();
+                    setStep('source');
+                  }}
+                  className="w-full p-4 bg-mhw-accent/10 border border-mhw-accent/30 rounded-lg flex items-center gap-4 group hover:bg-mhw-accent/20 transition-all text-left"
+                >
+                  <div className="p-3 bg-mhw-accent text-mhw-bg rounded-full shadow-[0_0_15px_rgba(202,192,128,0.3)]">
+                    <Plus size={20} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-widest text-mhw-accent">New Profile</div>
+                    <div className="text-[10px] opacity-60">新しい護石・解像度用に設定をゼロから作成します</div>
+                  </div>
+                </button>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
+                      <History size={12} /> Existing Profiles
+                    </span>
+                    <span className="text-[9px] px-2 py-0.5 bg-white/5 rounded text-white/40">{profiles.length} total</span>
+                  </div>
+                  
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {profiles.length === 0 && !isLoading && (
+                      <div className="p-8 text-center border border-dashed border-white/10 rounded">
+                        <p className="text-[10px] opacity-30">保存済みのプロファイルはありません</p>
+                      </div>
+                    )}
+                    
+                    {profiles.map(p => (
+                      <div 
+                        key={p.profile_id}
+                        className={`group relative p-3 rounded border transition-all cursor-pointer ${
+                          selectedProfileId === p.profile_id 
+                            ? 'bg-mhw-accent/10 border-mhw-accent/50' 
+                            : 'bg-white/5 border-white/10 hover:border-white/20'
+                        }`}
+                        onClick={() => selectProfile(p.profile_id!)}
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="text-xs font-bold text-mhw-text truncate pr-8">{p.name}</div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if(confirm('このプロファイルを削除しますか？')) deleteProfile(p.profile_id!);
+                            }}
+                            className="p-1 text-white/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                        
+                        {p.description && (
+                          <div className="text-[10px] text-white/40 line-clamp-1 mb-2 italic">
+                            "{p.description}"
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`flex items-center gap-1 text-[9px] font-mono ${isResolutionMatched(p.resolution) ? 'text-mhw-accent/70' : 'text-orange-400'}`}>
+                              <Maximize2 size={10} />
+                              {p.resolution ? `${p.resolution.width}x${p.resolution.height}` : 'Unknown'}
+                            </div>
+                            <div className="flex items-center gap-1 text-[9px] font-mono text-white/20">
+                              <Clock size={10} />
+                              {p.last_calibrated_at ? new Date(p.last_calibrated_at).toLocaleDateString() : '---'}
+                            </div>
+                          </div>
+                          
+                          {!isResolutionMatched(p.resolution) && (
+                            <div className="flex items-center gap-1 text-[8px] text-orange-400 font-bold animate-pulse">
+                              <AlertTriangle size={10} />
+                              RES MISMATCH
+                            </div>
+                          )}
+                        </div>
+
+                        {selectedProfileId === p.id && (
+                          <div className="mt-3 pt-3 border-t border-mhw-accent/20 flex gap-2 animate-in slide-in-from-top-2 duration-300">
+                            <button 
+                              onClick={() => setStep('parent')}
+                              className="flex-1 py-1.5 bg-mhw-accent text-mhw-bg text-[9px] font-black uppercase rounded hover:brightness-110"
+                            >
+                              Edit Profile
+                            </button>
+                            <button 
+                              onClick={() => setStep('normalization')}
+                              className="flex-1 py-1.5 border border-mhw-accent text-mhw-accent text-[9px] font-black uppercase rounded hover:bg-mhw-accent/10"
+                            >
+                              Adjust only
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 'source' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
+                      <FilePlus size={12} /> Video Source
+                    </label>
+                    {!sourceFile ? (
+                      <div className="p-4 border-2 border-dashed border-white/10 rounded-lg text-center hover:border-mhw-accent/30 transition-colors relative group/file">
+                        <input 
+                          type="file" 
+                          accept=".mp4,.mov,.webm,.avi"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setSourceFile(file);
+                          }}
+                        />
+                        <Upload size={24} className="mx-auto mb-2 text-white/20 group-hover/file:text-mhw-accent/50 transition-colors" />
+                        <p className="text-[10px] text-white/40">動画ファイルをドロップまたはクリック</p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <FilePlus size={16} className="text-mhw-accent shrink-0" />
+                          <span className="text-xs truncate">{sourceFile.name}</span>
+                        </div>
+                        <button onClick={() => setSourceFile(null)} className="text-[10px] text-white/30 hover:text-red-400 uppercase font-black">Change</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {sourceFile && (
+                    <div className="space-y-4 p-4 bg-black/40 border border-white/5 rounded-lg animate-in zoom-in-95 duration-300">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
+                           <Clock size={12} /> Seek & Capture
+                         </label>
+                         <input 
+                           type="range"
+                           min={0}
+                           max={videoDuration}
+                           step={0.001}
+                           value={timestampMs / 1000}
+                           onChange={(e) => {
+                             const time = parseFloat(e.target.value);
+                             if (videoRef.current) {
+                               videoRef.current.currentTime = time;
+                               // timestampMs は ms 単位なので 1000 倍
+                               useROIStore.setState({ timestampMs: Math.round(time * 1000) });
+                             }
+                           }}
+                           className="w-full accent-mhw-accent bg-white/10 rounded-lg h-1 outline-none cursor-pointer"
+                         />
+                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {previewImage && (
+                  <div className="p-4 bg-mhw-accent/5 border border-mhw-accent/20 rounded-lg animate-in fade-in duration-500">
+                    <div className="text-[10px] text-mhw-accent font-bold uppercase mb-2 flex items-center gap-2">
+                      <Eye size={12} /> Result Preview
+                    </div>
+                    <p className="text-[9px] text-white/40">この画像がキャリブレーションの背景として使用されます。</p>
+                    {error && <p className="mt-2 text-red-400 text-[9px] text-center">{error}</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
             {step === 'save' && (
-              <div className="space-y-4">
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
                 <div className="space-y-2">
-                  <span className="text-[10px] uppercase font-bold opacity-50">Profile Name</span>
-                  <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} className="w-full bg-mhw-bg border border-mhw-accent/30 rounded px-3 py-2 text-sm text-mhw-text focus:border-mhw-accent outline-none" />
+                  <span className="text-[10px] uppercase font-bold opacity-50 flex items-center gap-2">
+                    <Target size={12} /> Profile Name
+                  </span>
+                  <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} className="w-full bg-mhw-bg border border-mhw-accent/30 rounded px-3 py-2 text-sm text-mhw-text focus:border-mhw-accent outline-none" placeholder="例: 4K Standard, RemotePlay..." />
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-bold opacity-50 flex items-center gap-2">
+                    <History size={12} /> Description
+                  </span>
+                  <textarea value={profileDescription} onChange={e => setProfileDescription(e.target.value)} className="w-full bg-mhw-bg border border-mhw-accent/30 rounded px-3 py-2 text-sm text-mhw-text focus:border-mhw-accent outline-none h-24 resize-none" placeholder="このプロファイルの特徴や環境について..." />
+                </div>
+                <div className="p-3 bg-white/5 rounded border border-white/10 space-y-2">
+                  <div className="text-[9px] text-white/40 uppercase font-bold tracking-widest">Metadata Summary</div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px]">
+                    <div className="flex items-center gap-2">
+                       <Maximize2 size={10} className="text-mhw-accent" />
+                       <span className="font-mono">{profile.resolution.width}x{profile.resolution.height}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <Clock size={10} className="text-mhw-accent" />
+                       <span className="font-mono">{new Date().toLocaleDateString()}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

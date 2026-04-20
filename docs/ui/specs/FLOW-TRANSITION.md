@@ -19,17 +19,21 @@ graph TD
     F -->|完了| I[Job Completed]
     I -->|結果表示| G
 
-    subgraph Analysis Flow
-        D --> E
-        E --> F
-        F --> G
+    subgraph Analysis_Flow
+        D[Upload Video] --> E[Start Analysis]
+        E --> F[Monitor Progress]
+        F --> G[Extract Results]
     end
 
-    subgraph ROI Adjustment Flow
-        B -->|Any-to-Any Navigation| J[Items Selection]
-        J -->|Any-to-Any Navigation| K[Normalization]
-        K -->|Any-to-Any Navigation| L[Save]
-        L -->|Reset to Step 1| B
+    subgraph ROI_Adjustment_Flow
+        B --> J[Step 0: Setup]
+        J -->|既存プロファイル選択| L[Step 2: Window Area]
+        J -->|新規作成| K[Step 1: Source Frame]
+        K --> L
+        L --> M[Step 3: Items]
+        M --> N[Step 4: Normalization]
+        N --> O[Step 5: Save]
+        O -->|完了| Dashboard
     end
 ```
 

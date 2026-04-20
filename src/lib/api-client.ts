@@ -10,6 +10,20 @@ export const API_VERSION = '/api/v1';
 export const API_BASE_URL = `${API_HOST}${API_VERSION}`;
 
 /**
+ * API Data Types (SSoT Sync)
+ */
+export interface ProfileMetadata {
+  id: string;
+  name: string;
+  description?: string;
+  resolution?: string; // e.g. "1920x1080"
+  reference_image_path?: string;
+  last_calibrated_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
  * Backend API Client
  */
 export const apiClient = axios.create({
@@ -115,6 +129,11 @@ apiClient.interceptors.request.use(async (config) => {
       }
     } else if (url.includes('/analyze/cancel')) {
       data = { status: 'success', message: 'Stub: Job cancellation requested' };
+    } else if (url.includes('/vision/prepare')) {
+      data = { 
+        job_id: `job-${Math.floor(Math.random() * 10000)}`,
+        reference_image_url: sampleImg // サンプル画像を返す
+      };
     } else {
       data = { message: 'Stub: Operation successful' };
     }
