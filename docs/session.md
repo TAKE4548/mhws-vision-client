@@ -1,20 +1,23 @@
-# Development Session: SSE 駆動型ビデオ解析ワークフローの構築 (REQ-015)
+# Development Session: 統合開発環境起動スクリプトの作成 (REQ-016)
 
 - **State**: inactive
-- **Start Date**: 2026-04-19
-- **End Date**: 2026-04-19
+- **Start Date**: 2026-04-20
+- **End Date**: 2026-04-20
 - **Target REQs**:
-  - REQ-015: SSE 駆動型ビデオ解析ワークフローの構築 (P0)
-- **Branch**: `feat/REQ-015-sse-analysis-workflow`
+  - REQ-016: 統合開発環境起動スクリプトの作成 (P2)
+- **Branch**: `feat/REQ-016-startup-script`
 - **Coordinator**: AntiGravity
 - **Current Step**: Step 8: Finalization (Coordinator)
 
 ## Objectives
-- `02_analysis.md` および `02_analysis_api.md` の仕様に準拠し、SSE によるリアルタイム通知を受け取り、解析完了を待たずに護石データを順次表示・修正・保存できる高度な解析ワークフローUIを構築。
-- 実装完了後に REQ-011 (E2E疎通) の基盤を固める。
+- フロントエンド (Vite) とバックエンド (FastAPI) をセットで起動できる PowerShell/Batch スクリプトを作成する。
+- 仮想環境の自動有効化、ポート競合の配慮、および一括停止を可能にする。
+- 隣接リポジトリ (`mhws-vision-server`) を自動検出し、開発者の操作コストを削減する。
 
 ## Progress Track
+- [x] Step 0: Session Initialization (Coordinator)
 - [x] Step 3: High-Level Design (Architect)
-- [x] Step 4: UI/UX Specification (UX Designer)
-- [x] Step 6: Implementation & Browser Verification (Engineer)
+- [x] Step 5: Approval Gate (Coordinator)
+- [x] Step 6: Implementation (Engineer)
+- [x] Step 7: Verification (Tester/Reviewer)
 - [x] Step 8: Finalization (Coordinator)
