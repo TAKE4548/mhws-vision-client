@@ -85,11 +85,7 @@ export const MOCK_ROI_PROFILES = [
   }
 ];
 
-// Placeholder 4K-ish frame simulation
-export const MOCK_VISION_PREVIEW = {
-  image: 'data:image/webp;base64,UklGRkAAAABXRUJQVlA4IDQAAADwAQCdASoBAAEAAUAmJaQAA3AA/u8AAA=', // WebP 1x1 placeholder
-  regions: [],
-};
+// MOCK_VISION_PREVIEW is no longer used here as api-client now fetches the sample asset directly.
 
 
 /**

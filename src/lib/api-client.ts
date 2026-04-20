@@ -17,12 +17,16 @@ export const apiClient = axios.create({
   timeout: 5000,
 });
 
+// Import sample asset for stub mode
+import sampleImg from '../assets/sample-frame.webp';
+
 // Request interceptor for API Stubbing (REQ-014)
-apiClient.interceptors.request.use((config) => {
+apiClient.interceptors.request.use(async (config) => {
   const { apiMode, apiErrorMode } = useUIStore.getState();
 
   if (apiMode === 'stub') {
-    console.log(`[API Stub] Intercepting request: ${config.method?.toUpperCase()} ${config.url}`);
+    const url = config.url || '';
+    console.log(`[API Stub] Intercepting request: ${config.method?.toUpperCase()} ${url}`);
     
     // Simulate Error
     if (apiErrorMode) {
@@ -38,9 +42,59 @@ apiClient.interceptors.request.use((config) => {
       });
     }
 
+    // Spec Handling: /vision/preview returns binary image
+    if (url.includes('/vision/preview')) {
+      console.log('[Stub API] Intercepting vision/preview', config.params);
+      
+      const responseStub = async () => {
+        const { x, y, w, h } = config.params || {};
+        const response = await fetch(sampleImg);
+        const fullBlob = await response.blob();
+
+        // クロップ指定がある場合はシミュレーション
+        if (w && h) {
+          return new Promise<Blob>((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                // y, x の順序や計算ミスに注意 (OpenAPI基準: x, y, w, h)
+                ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+              }
+              canvas.toBlob((blob) => {
+                if (blob) resolve(blob);
+                else resolve(fullBlob);
+              }, 'image/webp');
+            };
+            img.onerror = () => resolve(fullBlob);
+            img.src = URL.createObjectURL(fullBlob);
+          });
+        }
+        return fullBlob;
+      };
+
+      try {
+        const blob = await responseStub();
+        return Promise.reject({
+          isStub: true,
+          response: {
+            status: 200,
+            statusText: 'OK',
+            data: blob,
+            config,
+            headers: { 'content-type': 'image/webp' },
+          },
+        });
+      } catch (err) {
+        console.error('[API Stub] Failed to fetch sample image:', err);
+      }
+    }
+
     // Determine mock data based on URL
     let data: any = null;
-    const url = config.url || '';
 
     if (url.includes('/talismans')) {
       data = mockData.MOCK_TALISMANS;
@@ -52,8 +106,6 @@ apiClient.interceptors.request.use((config) => {
       data = { job_id: `debug-job-${Math.floor(Math.random() * 10000)}` };
     } else if (url.includes('/analyze/start/')) {
       data = { status: 'success', message: 'Analysis started (Stub)' };
-    } else if (url.includes('/vision/preview')) {
-      data = mockData.MOCK_VISION_PREVIEW; 
     } else if (url.includes('/config/roi/profiles')) {
       if (config.method === 'post') {
         const postData = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;

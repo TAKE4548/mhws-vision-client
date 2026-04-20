@@ -44,19 +44,23 @@
 
 ### Visual Definition  
 - **インタラクティブキャンバス**  
-  - `InteractiveCanvas`: SVGキャンバスの背景色は`kinetic-surface-high`  
-  - ROI選択領域: `kinetic-amber`の半透明オーバーレイ  
+  - `InteractiveCanvas`: ターゲット領域（Parent -> Window -> Slot）に合わせた「動的アスペクト比追従 (Dynamic Reshaping)」を実装。
+  - `Auto-fitting`: 読み込まれた画像の実解像度を検知し、コンテナのアスペクト比を物理的に補正することで、ウルトラワイド環境等での画像端の欠損を防止。
+  - `Masking`: 選択範囲外を暗転させるSVGマスク。オーバーレイ非表示設定時でも維持される必須コンポーネント。
+- **UI制御・オーバーレイ**
+  - `Visibility Toggle`: 目アイコンのトグルボタンにより、PHASE/TARGET名称、Live Calibration Mode バッジの表示・非表示を切替。
+  - `Calibration Badge`: 右上に「Live Calibration Mode」バッジを常時表示（トグル可）。
 - **数値調整コンポーネント**  
   - `NumericalAdjuster`: MHW風のアクセントカラー（`kinetic-amber`のボタン）  
   - スライダーのハンドルに`rounded-tech`（0.25rem）  
 
 ### Responsive Behavior  
 - **デスクトップ**  
-  - ステップナビゲーション（4段階）が横並び表示  
-  - キャンバスサイズ: 800px × 600px  
+  - ステップナビゲーション（4段階）が横並び表示。各ステップ番号をクリックすることで、直接的なフェーズジャンプが可能。
+  - キャンバスサイズ: 最大 `70vh` の可変アスペクト比（動的追従）。
 - **モバイル**  
-  - ステップナビゲーションが縦並び（タップでステップ切り替え）  
-  - キャンバスサイズ: 100vw × 70vh  
+  - ステップナビゲーションが縦並び（タップでステップ切り替え）。
+  - キャンバスサイズ: 100vw × 可変高さ（アスペクト比固定）。
 
 ### State UI  
 - **ローディング状態**  

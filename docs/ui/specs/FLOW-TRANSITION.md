@@ -26,9 +26,10 @@ graph TD
     end
 
     subgraph ROI Adjustment Flow
-        B -->|Parent選択| J[Items Selection]
-        J -->|正規化| K[Normalization]
-        K -->|保存| L[Save]
+        B -->|Any-to-Any Navigation| J[Items Selection]
+        J -->|Any-to-Any Navigation| K[Normalization]
+        K -->|Any-to-Any Navigation| L[Save]
+        L -->|Reset to Step 1| B
     end
 ```
 
@@ -36,18 +37,27 @@ graph TD
 
 ## **Interaction Logic**
 
-### **ROI調整のステップ遷移**
-- **Parent選択ステップ**  
-  - ユーザーがROI調整対象のParentを選択 → `activeTarget`が更新 → プレビュー画像がデバウンスで取得（1秒遅延）。
-  - 次のステップへ進むには「Next」ボタンをクリック → `step`が`items`に遷移。
+### **ROI調整のステップ遷移ロジック**
+- **ステップナビゲーション (Any-to-Any)**
+  - ユーザーはステップバーの番号を直接クリックすることで、現在の進捗に関わらず任意のステップへ遷移可能。
+  - 遷移時、`setPreviewImage(null)` を実行し、古いステップの残像が表示されるのを防止。
 
-- **Items選択ステップ**  
+- **Parent選択ステップ (Step 1)**  
+  - ユーザーがROI調整対象のParentを選択。
+  - **Context Reset**: このステップに遷移（または復帰）した際、`actualRatio` と `previewImage` がリセットされ、全画面解像度での再描画が保証される。
+  - 画像読込完了時に実際の解像度を検知し、`setResolution` を通じて `profile.resolution` を同期。
+
+- **Items選択ステップ (Step 2)**  
   - ROIアイテムのドラッグ＆ドロップで領域を設定 → `activeTarget`の座標が更新。
-  - 「Back」ボタンでParent選択に戻る → `step`が`parent`に遷移。
+  - `parent_window` のアスペクト比に基づきキャンバスが形状変化。
 
-- **正規化ステップ**  
+- **正規化ステップ (Step 3)**  
   - ROI領域のスケーリング/回転調整 → `activeTarget`の変換パラメータが更新。
-  - 「Save」ボタンクリック → `step`が`save`に遷移 → `roiStore`に保存処理をトリガー。
+  - 特定のROIスロットにズームし、そのアスペクト比にキャンバスが追従。
+
+- **保存ステップ (Step 4)**
+  - 設定にプロファイル名を付けて保存。
+  - キャンバスは Step 2 (`parent_window`) のアスペクト比を維持して最終プレビューを表示。
 
 ### **APIモードの切り替え挙動**
 - **Liveモード**  

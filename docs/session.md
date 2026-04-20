@@ -1,18 +1,19 @@
-# Development Session: 統合開発環境起動スクリプトの作成 (REQ-016)
+# Development Session: ROIキャリブレーション時のプレビュー画像表示不具合の解消 (REQ-019)
 
-- **State**: inactive
+- **State**: active
 - **Start Date**: 2026-04-20
-- **End Date**: 2026-04-20
+- **End Date**: 
 - **Target REQs**:
-  - REQ-016: 統合開発環境起動スクリプトの作成 (P2)
-- **Branch**: `feat/REQ-016-startup-script`
+  - REQ-019: ROIキャリブレーション時のプレビュー画像表示不具合の解消 (P1)
+- **Branch**: `fix/REQ-019-roi-preview-bug`
 - **Coordinator**: AntiGravity
 - **Current Step**: Step 8: Finalization (Coordinator)
 
 ## Objectives
-- フロントエンド (Vite) とバックエンド (FastAPI) をセットで起動できる PowerShell/Batch スクリプトを作成する。
-- 仮想環境の自動有効化、ポート競合の配慮、および一括停止を可能にする。
-- 隣接リポジトリ (`mhws-vision-server`) を自動検出し、開発者の操作コストを削減する。
+- [x] ROIキャリブレーション画面でプレビュー画像が表示されない不具合を解消する。
+- [x] 動画未選択時でもデフォルトのサンプル画像を表示するフォールバック機能を実装する。
+- [x] Stub モードと Live モードの両方で画像パスの解決が正しく行われるようにする。
+- [x] OpenAPI仕様（バイナリ形式）に準拠した通信・表示ロジックを実装する。
 
 ## Progress Track
 - [x] Step 0: Session Initialization (Coordinator)

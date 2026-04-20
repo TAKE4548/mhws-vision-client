@@ -59,6 +59,7 @@ interface ROIState {
   setStep: (step: CalibrationStep) => void;
   setActiveTarget: (target: ActiveTarget, id?: number) => void;
   setPreviewImage: (image: string | null) => void;
+  setResolution: (width: number, height: number) => void;
   
   updateParentWindow: (updates: Partial<Rect>) => void;
   updateRelativeRect: (target: ActiveTarget, id: number, updates: Partial<RelativeRect>) => void;
@@ -102,6 +103,9 @@ export const useROIStore = create<ROIState>((set) => ({
   setStep: (step) => set({ step }),
   setActiveTarget: (activeTarget, activeId = 0) => set({ activeTarget, activeId }),
   setPreviewImage: (previewImage) => set({ previewImage }),
+  setResolution: (width, height) => set((state) => ({
+    profile: { ...state.profile, resolution: { width, height } }
+  })),
 
   updateParentWindow: (updates) => set((state) => ({
     profile: {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Maximize2, Move, Box, Save, History, ChevronRight, ChevronLeft, Target, MousePointer2, Plus, Minus } from 'lucide-react'
+import { Maximize2, Move, Box, Save, History, ChevronRight, ChevronLeft, Target, MousePointer2, Plus, Minus, Eye, EyeOff } from 'lucide-react'
 import InteractiveCanvas from './roi/InteractiveCanvas'
 import { useROIStore, CalibrationStep, ActiveTarget, Rect, RelativeRect, Point } from '../store/roiStore'
 import { apiClient } from '../lib/api-client'
@@ -57,42 +57,85 @@ const ROICalibrator = () => {
 
   const [profileName, setProfileName] = useState('New Profile');
   const [isSaving, setIsSaving] = useState(false);
+  const [showOverlays, setShowOverlays] = useState(true);
 
   // プレビュー画像の自動更新
   useEffect(() => {
+    let currentUrl: string | null = null;
+    let canceled = false;
+
     const fetchPreview = async () => {
+      setPreviewImage(null); // ステップ遷移時の残像を防ぐためにリセット (REQ-019 Follow-up)
       try {
         let params: any = {};
         if (step === 'parent') {
+          // STEP 1: 全画面を表示
+          params = { x: 0, y: 0, w: profile.resolution.width, h: profile.resolution.height };
+        } else if (step === 'items') {
+          // STEP 2: WINDOW AREA (Parent) の範囲を表示
           params = { ...profile.parent_window };
+        } else if (step === 'normalization') {
+          // STEP 3: Slot 1 Level の範囲を表示 (仕様通り)
+          const slot1 = profile.slots[0];
+          params = {
+            x: profile.parent_window.x + slot1.level.x_rel,
+            y: profile.parent_window.y + slot1.level.y_rel,
+            w: slot1.level.w,
+            h: slot1.level.h
+          };
         } else {
-          const current = (step === 'items') ? (
-            activeTarget === 'rarity' ? profile.rarity :
-            activeTarget.includes('slot') ? (profile.slots.find(s => s.id === activeId)?.[activeTarget === 'slot_icon' ? 'icon' : 'level']) :
-            (profile.skills.find(s => s.id === activeId)?.[activeTarget === 'skill_name' ? 'name' : 'level'])
-          ) : null;
-
-          if (current) {
-            params = {
-              x: profile.parent_window.x + current.x_rel,
-              y: profile.parent_window.y + current.y_rel,
-              w: current.w,
-              h: current.h
-            };
-          } else {
-            params = { ...profile.parent_window };
-          }
+          params = { ...profile.parent_window };
         }
 
-        const response = await apiClient.get('/vision/preview', { params });
-        setPreviewImage(response.data.image || response.data);
+        // REQ-019: OpenAPI準拠 (バイナリ取得)
+        const response = await apiClient.get('/vision/preview', { 
+          params,
+          responseType: 'blob' 
+        });
+
+        if (canceled) return;
+
+        // 以前のObjectURLを解放
+        if (currentUrl) {
+          URL.revokeObjectURL(currentUrl);
+        }
+
+        // 新しいURLを生成
+        const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
+        const url = URL.createObjectURL(blob);
+        currentUrl = url;
+        setPreviewImage(url);
+
+        // 初回ロード時または画像サイズ変更時に実際の解像度を検知して更新 (REQ-019 Follow-up)
+        if (step === 'parent') {
+          const img = new Image();
+          img.onload = () => {
+            if (canceled) return;
+            // useROIStoreのsetResolutionを呼ぶ必要があるが、ここではローカル変数としてimgがある
+            // profile.resolution.width/heightは最新の状態を使いたい
+            if (img.naturalWidth !== profile.resolution.width || img.naturalHeight !== profile.resolution.height) {
+              console.log(`[ROICalibrator] Syncing resolution: ${img.naturalWidth}x${img.naturalHeight}`);
+              useROIStore.getState().setResolution(img.naturalWidth, img.naturalHeight);
+            }
+          };
+          img.src = url;
+        }
       } catch (error) {
-        console.error('Failed to fetch preview:', error);
+        if (!canceled) {
+          console.error('Failed to fetch preview:', error);
+        }
       }
     };
 
-    const timer = setTimeout(fetchPreview, 250); // デバウンスを少し長く
-    return () => clearTimeout(timer);
+    const timer = setTimeout(fetchPreview, 250);
+    
+    return () => {
+      canceled = true;
+      clearTimeout(timer);
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+    };
   }, [step, activeTarget, activeId, profile, setPreviewImage]);
 
   const handleNext = () => {
@@ -157,12 +200,24 @@ const ROICalibrator = () => {
       {/* Simulation Area */}
       <div className="col-span-8 flex flex-col gap-6">
         <div className="relative group">
-          <InteractiveCanvas />
-          <div className="absolute top-4 right-4 flex gap-2">
-            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded border border-mhw-accent/20 flex items-center gap-2">
-              <Target size={12} className="text-mhw-accent animate-pulse" />
-              <span className="text-[10px] font-bold text-mhw-text uppercase tracking-widest">Live Calibration Mode</span>
-            </div>
+          <InteractiveCanvas showOverlays={showOverlays} />
+          
+          <div className="absolute top-4 right-4 flex items-center gap-3">
+            {/* Visibility Toggle (REQ-019 Follow-up) */}
+            <button 
+              onClick={() => setShowOverlays(!showOverlays)}
+              className={`p-2 rounded-full backdrop-blur-xl border border-mhw-accent/30 transition-all ${showOverlays ? 'bg-mhw-accent text-mhw-bg' : 'bg-black/60 text-mhw-accent hover:bg-black/80'}`}
+              title={showOverlays ? 'Hide Overlays' : 'Show Overlays'}
+            >
+              {showOverlays ? <Eye size={16} /> : <EyeOff size={16} />}
+            </button>
+
+            {showOverlays && (
+              <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded border border-mhw-accent/20 flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                <Target size={12} className="text-mhw-accent animate-pulse" />
+                <span className="text-[10px] font-bold text-mhw-text uppercase tracking-widest">Live Calibration Mode</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -171,8 +226,11 @@ const ROICalibrator = () => {
           <div className="flex gap-4 items-center">
             {STEPS.map((s, idx) => (
               <React.Fragment key={s.id}>
-                <div className={`flex items-center gap-2 ${step === s.id ? 'opacity-100' : 'opacity-30'}`}>
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${step === s.id ? 'bg-mhw-accent text-mhw-bg' : 'bg-white/10'}`}>
+                <div 
+                  onClick={() => setStep(s.id)}
+                  className={`flex items-center gap-2 cursor-pointer transition-all hover:opacity-100 ${step === s.id ? 'opacity-100' : 'opacity-30'}`}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${step === s.id ? 'bg-mhw-accent text-mhw-bg shadow-[0_0_10px_rgba(202,192,128,0.4)]' : 'bg-white/10 group-hover:bg-white/20'}`}>
                     {idx + 1}
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider">{s.label}</span>

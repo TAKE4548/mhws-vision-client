@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useROIStore, Rect, RelativeRect, Point, CalibrationStep, ActiveTarget } from '../../store/roiStore';
 import ResizeHandle from './ResizeHandle';
+import sampleImg from '../../assets/sample-frame.webp';
 
 interface InteractiveCanvasProps {
   backgroundImage?: string;
+  showOverlays?: boolean;
 }
 
 type InteractionType = 'move' | 'nw-resize' | 'ne-resize' | 'sw-resize' | 'se-resize' | 'point' | null;
 
-const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage }) => {
+const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, showOverlays = true }) => {
   const { 
     step, activeTarget, activeId, profile, previewImage,
     updateParentWindow, updateRelativeRect, updatePoint,
@@ -21,6 +23,44 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage }
     startPos: { x: number; y: number }; 
     startValue: any 
   } | null>(null);
+
+  // Fallback support (REQ-019)
+  const [imgSrc, setImgSrc] = useState<string | null>(previewImage);
+  const [actualRatio, setActualRatio] = useState<string | null>(null);
+
+  useEffect(() => {
+    setImgSrc(previewImage);
+    // 画像リセット時、または Step 1 (parent) に戻った際に比率もリセットして全画面に即時復帰させる (REQ-019 Follow-up)
+    if (!previewImage || step === 'parent') {
+      setActualRatio(null);
+    }
+  }, [previewImage, step]);
+
+  const handleImageError = () => {
+    console.warn('[InteractiveCanvas] Preview loading failed, falling back to sample image.');
+    setImgSrc(sampleImg);
+  };
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    const ratioStr = `${naturalWidth} / ${naturalHeight}`;
+    setActualRatio(ratioStr);
+    console.log(`[InteractiveCanvas] Image loaded, aspect-ratio: ${ratioStr}`);
+  };
+
+  // 現在のコンテキストに応じたアスペクト比を計算 (REQ-019 Follow-up)
+  const calculatedRatio = useMemo(() => {
+    if (step === 'parent') return `${profile.resolution.width} / ${profile.resolution.height}`;
+    if (step === 'items' || step === 'save') return `${profile.parent_window.w} / ${profile.parent_window.h}`;
+    if (step === 'normalization') {
+      const slot = profile.slots[0];
+      return `${slot.level.w} / ${slot.level.h}`;
+    }
+    return '16 / 9';
+  }, [step, profile.resolution, profile.parent_window, profile.slots]);
+
+  // 実画像比率を優先しつつ、未ロード時は計算比率を使用
+  const currentRatio = actualRatio || calculatedRatio;
 
   // 現在のターゲット矩形/ポイントを取得
   const currentTarget = useMemo(() => {
@@ -61,9 +101,11 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage }
     const pos = getNormalizedCoords(e.clientX, e.clientY);
     
     if (step === 'normalization') {
-      // スポイトモード: クリックした瞬間に座標を確定
-      const x_rel = Math.round(pos.x * profile.parent_window.w);
-      const y_rel = Math.round(pos.y * profile.parent_window.h);
+      // スポイトモード: クリックした瞬間に座標を確定 (REQ-019 Follow-up)
+      // ステップ3では背景が Slot 1 Level なので、pos.x (0~1) は Slot 1 Level 内の相対位置
+      const slot1 = profile.slots[0];
+      const x_rel = Math.round(slot1.level.x_rel + (pos.x * slot1.level.w));
+      const y_rel = Math.round(slot1.level.y_rel + (pos.y * slot1.level.h));
       updatePoint(activeTarget as 'bg_point' | 'frame_point', { x_rel, y_rel });
       return;
     }
@@ -84,9 +126,9 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage }
 
     if (step === 'parent') {
       const startRect = interaction.startValue as Rect;
-      // 1920x1080 基準のピクセル移動
-      const dx_px = dx * 1920;
-      const dy_px = dy * 1080;
+      // profile.resolution 基準のピクセル移動
+      const dx_px = dx * profile.resolution.width;
+      const dy_px = dy * profile.resolution.height;
       
       const updates: Partial<Rect> = {};
       const type = interaction.type || '';
@@ -154,39 +196,55 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage }
     
     if (step === 'parent') {
       const r = currentTarget as Rect;
-      return { x: (r.x / 1920) * 100, y: (r.y / 1080) * 100, w: (r.w / 1920) * 100, h: (r.h / 1080) * 100 };
-    } else {
-      // ポイントか矩形かを w の有無で判定
-      const r = currentTarget as any;
-      if (r.w !== undefined) {
-        return { 
-          x: (r.x_rel / profile.parent_window.w) * 100, 
-          y: (r.y_rel / profile.parent_window.h) * 100, 
-          w: (r.w / profile.parent_window.w) * 100, 
-          h: (r.h / profile.parent_window.h) * 100 
-        };
-      } else {
-        // Point (スポイト用)
-        return { 
-          x: (r.x_rel / profile.parent_window.w) * 100, 
-          y: (r.y_rel / profile.parent_window.h) * 100, 
-          w: 0, h: 0, 
-          isPoint: true 
-        };
-      }
+      return { 
+        x: (r.x / profile.resolution.width) * 100, 
+        y: (r.y / profile.resolution.height) * 100, 
+        w: (r.w / profile.resolution.width) * 100, 
+        h: (r.h / profile.resolution.height) * 100 
+      };
+    } else if (step === 'items') {
+      const r = currentTarget as RelativeRect;
+      return { 
+        x: (r.x_rel / profile.parent_window.w) * 100, 
+        y: (r.y_rel / profile.parent_window.h) * 100, 
+        w: (r.w / profile.parent_window.w) * 100, 
+        h: (r.h / profile.parent_window.h) * 100 
+      };
+    } else if (step === 'normalization') {
+      // ステップ3では背景が Slot 1 Level なので、それに対する相対位置を計算
+      const r = currentTarget as Point;
+      const slot1 = profile.slots[0];
+      return { 
+        x: ((r.x_rel - slot1.level.x_rel) / slot1.level.w) * 100, 
+        y: ((r.y_rel - slot1.level.y_rel) / slot1.level.h) * 100, 
+        w: 0, h: 0, 
+        isPoint: true 
+      };
     }
+    return null;
   }, [currentTarget, step, profile.parent_window]);
 
   return (
     <div 
       ref={containerRef}
-      className={`aspect-video bg-black relative rounded border-2 border-mhw-accent/20 overflow-hidden shadow-2xl group select-none ${step === 'normalization' ? 'cursor-crosshair' : 'cursor-default'}`}
+      className={`relative rounded border-2 border-mhw-accent/20 overflow-hidden shadow-2xl group select-none transition-all duration-500 ease-in-out ${step === 'normalization' ? 'cursor-crosshair' : 'cursor-default'}`}
+      style={{
+        aspectRatio: currentRatio,
+        backgroundColor: '#000',
+        maxHeight: '70vh' // 画面を突き抜けないように制限
+      }}
       onMouseDown={step === 'normalization' ? (e) => handleMouseDown('point', e) : undefined}
     >
       {/* Background Layer */}
       <div className="absolute inset-0">
-        {previewImage ? (
-          <img src={previewImage} alt="Preview" className="w-full h-full object-cover pointer-events-none" />
+        {imgSrc ? (
+          <img 
+            src={imgSrc} 
+            alt="Preview" 
+            className="w-full h-full object-fill pointer-events-none" 
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-mhw-panel/50">
             <span className="text-[10px] uppercase tracking-widest opacity-20 font-bold">Waiting for Preview Signal...</span>
@@ -202,7 +260,7 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage }
 
         {renderBox && !renderBox.isPoint && (
           <>
-            {/* Mask */}
+            {/* Mask - ステップ2以降では親ROIに合わせるため不要な場合が多いが、コンテキスト維持のため残す。 */}
             <path
               fill="rgba(0,0,0,0.6)"
               fillRule="evenodd"
@@ -245,14 +303,16 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage }
       </svg>
 
       {/* Step Indicator / Label */}
-      <div className="absolute top-4 left-4 flex flex-col gap-1">
-        <span className="text-[8px] bg-mhw-accent text-mhw-bg px-2 py-0.5 rounded-full font-black uppercase tracking-widest">
-          {step} PHASE
-        </span>
-        <span className="text-[10px] text-mhw-text font-bold uppercase tracking-tighter drop-shadow-md">
-          TARGET: {activeTarget} {activeTarget.includes('slot') || activeTarget.includes('skill') ? `#${activeId + 1}` : ''}
-        </span>
-      </div>
+      {showOverlays && (
+        <div className="absolute top-4 left-4 flex flex-col gap-1 pointer-events-none">
+          <span className="text-[8px] bg-mhw-accent text-mhw-bg px-2 py-0.5 rounded-full font-black uppercase tracking-widest">
+            {step} PHASE
+          </span>
+          <span className="text-[10px] text-mhw-text font-bold uppercase tracking-tighter drop-shadow-md">
+            TARGET: {activeTarget} {activeTarget.includes('slot') || activeTarget.includes('skill') ? `#${activeId + 1}` : ''}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
