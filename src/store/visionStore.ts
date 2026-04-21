@@ -140,7 +140,7 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       
       switch (type) {
         case 'progress':
-          set({ progress: data.progress * 100 });
+          set({ progress: Math.min(data.progress || 0, 1.0) * 100 });
           break;
 
         case 'capture_extracted':
@@ -220,7 +220,7 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       if (data) {
         set({ 
           status: data.status,
-          progress: (data.progress || 0) * 100 
+          progress: Math.min(data.progress || 0, 1.0) * 100 
         });
       }
     } catch (err) {

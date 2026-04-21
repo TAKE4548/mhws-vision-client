@@ -62,7 +62,7 @@
 - **Priority**: P0
 - **Surface**: 解析したい動画ファイルを渡して、解析が実行されて一覧が表示される基本的なワークフローを作成したい。
 - **Root Cause**: Interaction/Information Design - モック段階から実データ連携への移行に際し、動画解析のライフサイクル（登録・進捗監視・結果確認）を統合したワークフローが必要。
-- **Requirement**: 動画解析タスクの「登録」「進捗監視（プログレス・プレビュー）」「解析結果（信頼度・クロップ画像含む）の確認」を一気通貫で実行できるワークフロー基盤の構築。
+- **Requirement**: 動画解析タスク의「登録」「進捗監視（プログレス・プレビュー）」「解析結果（信頼度・クロップ画像含む）の確認」を一気通貫で実行できるワークフロー基盤の構築。
 - **Acceptance criteria**:
   - ユーザーがローカルの動画ファイルを選択し、`/api/v1/analyze/video` 経由で解析をリクエストできること。
   - `/api/v1/analyze/status/{job_id}` を通じて進捗（プログレスバー）および最新の解析サムネイルがリアルタイムに表示されること。
@@ -201,7 +201,7 @@
 - **Priority**: P0
 - **Surface**: 「メインの解析ワークフローを実現するための、フロント側機能を構築したい。同期はREQ-013とおなじ」
 - **Root Cause**: **Information Design / Interaction** - 従来の単純なポーリングやバッチ的な一覧表示では、長時間かかるビデオ解析においてユーザーを待機させてしまう。最新仕様（SSEによる進捗通知）に基づき、「見つかった側からカードを表示・編集できる」というプログレッシブなUXが欠落しているため。
-- **Requirement**: `02_analysis.md` および `02_analysis_api.md` の仕様に準拠し、SSEによるリアルタイム通知を受け取り、解析完了を待たずに各護石データを順次表示・修正・保存できる高度な解析ワークフローUIの構築。
+- **Requirement**: `02_analysis.md` および `02_analysis_api.md` の仕様に準拠し、SSEによるリアルタイム通知を受け取り、解析完了を待たずに各護石データを順次表示・修正・保存できる高度な解析ワークフローUI의構築。
 - **Acceptance criteria**:
   - ✅ 動画アップロードから解析開始、SSEイベントの購読までが一連のフローとして統合されていること。
   - ✅ `capture_extracted` イベント受信時に、一覧へ即座に「解析中カード」が追加レンダリングされること。
@@ -212,7 +212,7 @@
 - **Design doc**: [02_analysis.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/user_workflows/02_analysis.md), [02_analysis_api.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-server/docs/system/sequences/02_analysis_api.md)
 - **Implementation notes**:
   - `sse-client.ts`: EventSource ラッパー。Stubモードによる疑似イベント（3秒間隔）発行機能を搭載。
-  - `visionStore.ts`: SSE による `talismans` 配列の動的更新ロジック。中断時のクリーンアップ、REST API による状態復旧（syncJobStatus）を統合。
+  - `visionStore.ts`: SSE による `talismans` 配列の動的更新ロジック。中断時のクリーンアップ、REST API による状態復旧（syncJobStatus）を統合.
   - `AnalysisMonitor.tsx`: リアルタイム進捗バーと、抽出された護石のライブフィード（最近の3件）を表示する HUD。
   - `api-client.ts`: `debug_start`, `cancel` 等の新しいエンドポイントに対する Stub インターセプターの拡充。
 
@@ -256,17 +256,17 @@
 
 ### REQ-018: 動画解析プログレスバー表示の異常数値修正
 - **Type**: bug
-- **Status**: in-progress
+- **Status**: done (2026-04-21)
 - **Current step**: none
 - **Priority**: P1
 - **Surface**: 解析開始直後にプログレスバーが1000%を超え、最終的に8000%などの異常な値を示す。
 - **Root Cause**: Information Design - 進捗率計算の分母となる総フレーム数（または単位）と、実際に処理されるフレーム数の不整合。
 - **Requirement**: 動画の実際の属性に基づき、常に 0%〜100% の範囲で正確な進捗を表示すること。
 - **Acceptance criteria**:
-  - 表示数値が 100% を超えないこと。
-  - 1枚目のスキャン時点で異常なスケール（1000%超）にならないこと。
-  - 解析完了時に 100% に到達し、視覚的な進行状況と実態が一致すること。
-- **Design doc**: none
+  - ✅ 表示数値が 100% を超えないこと。
+  - ✅ 1枚目のスキャン時点で異常なスケール（1000%超）にならないこと。
+  - ✅ 解析完了時に 100% に到達し、視覚的な進行状況と実態が一致すること。
+- **Design doc**: [PBI-018.md](file:///c:/Users/audih/ws/hogehoge/mhws-vision-client/docs/design/PBI-018.md)
 
 ---
 
@@ -287,7 +287,7 @@
   - ✅ **Follow-up**: ステップバーからの直接遷移（Clickable Step Bar）と、Step 1 復帰時のコンテキスト・同期の安定化。
 - **Design doc**: none
 - **Implementation notes**:
-  - `ROICalibrator.tsx`: プレビュー画像のリセット処理 (`setPreviewImage(null)`)、非同期フラグ (`canceled`) による解像度同期の整合性確保、ステップバーの `onClick` 遷移。
+  - `ROICalibrator.tsx`: プレビュー画像のリセット処理 (`setPreviewImage(null)`)、非同期フラグ (`canceled`) による解像度同期の整合性確保、ステップバーの `onClick` 遷移.
   - `InteractiveCanvas.tsx`: `actualRatio` ステートによる画像実測比率の優先適用、SVGマスクの常時表示、4ステップ全てでのアスペクト比計算ロジック。
 
 ---
