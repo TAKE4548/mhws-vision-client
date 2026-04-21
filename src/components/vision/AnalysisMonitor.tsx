@@ -30,8 +30,10 @@ export const AnalysisMonitor: React.FC = () => {
 
   useEffect(() => {
     if (profiles.length > 0 && !selectedProfileId) {
-      const defaultProfile = profiles.find(p => p.is_default) || profiles[0];
-      setSelectedProfileId(defaultProfile.id);
+      const defaultProfile = profiles.find(p => (p as any).is_default) || profiles[0];
+      if (defaultProfile.profile_id) {
+        setSelectedProfileId(defaultProfile.profile_id);
+      }
     }
   }, [profiles, selectedProfileId]);
 
@@ -65,7 +67,7 @@ export const AnalysisMonitor: React.FC = () => {
           <div className="kinetic-surface-high p-8 relative overflow-hidden">
             {/* Progress Bar Container / Ready to Start Area */}
             <div className="space-y-6">
-              {status === 'pending' ? (
+              {(status as string) === 'pending' ? (
                 <div className="space-y-8 animate-in zoom-in-95 duration-500">
                   <div className="text-center space-y-2">
                     <span className="font-space-tech text-[10px] text-kinetic-blue uppercase tracking-[0.3em]">System Primed</span>
@@ -85,7 +87,7 @@ export const AnalysisMonitor: React.FC = () => {
                        >
                          {profiles.length > 0 ? (
                            profiles.map(p => (
-                             <option key={p.id} value={p.id}>{p.name} {p.is_default ? '(DEFAULT)' : ''}</option>
+                             <option key={p.profile_id} value={p.profile_id}>{p.name} {(p as any).is_default ? '(DEFAULT)' : ''}</option>
                            ))
                          ) : (
                            <option value="">NO PROFILES DETECTED</option>
@@ -101,7 +103,7 @@ export const AnalysisMonitor: React.FC = () => {
                     <div className="flex items-end">
                       <button 
                         onClick={() => startAnalysis(selectedProfileId)}
-                        disabled={!selectedProfileId || status !== 'pending'}
+                        disabled={!selectedProfileId || (status as string) !== 'pending'}
                         className="w-full py-3 bg-kinetic-blue text-black font-space-tech font-black text-[12px] uppercase tracking-wider flex items-center justify-center gap-3 hover:bg-white hover:shadow-[0_0_20px_rgba(56,189,248,0.5)] transition-all disabled:opacity-20"
                       >
                         <Play className="w-4 h-4 fill-current" />
@@ -231,12 +233,12 @@ export const AnalysisMonitor: React.FC = () => {
                     <div className="flex justify-between items-center">
                        <span className="font-space-tech text-[10px] font-black text-on-surface">UNIT_{t.capture_id.slice(-4).toUpperCase()}</span>
                        <span className={`font-label-tech text-[8px] px-1.5 py-0.5 rounded ${t.validation_status === 'processing' ? 'bg-kinetic-blue/20 text-kinetic-blue animate-pulse' : 'bg-kinetic-amber/20 text-kinetic-amber'}`}>
-                          {t.validation_status.toUpperCase()}
+                          {t.validation_status?.toUpperCase()}
                        </span>
                     </div>
-                    {t.skills?.length > 0 && (
+                    {(t.skills?.length || 0) > 0 && (
                        <p className="font-label-tech text-[9px] text-white/40 truncate uppercase">
-                         {t.skills[0].name} LV{t.skills[0].level}
+                         {t.skills![0].name} LV{t.skills![0].level}
                        </p>
                     )}
                     <div className="w-full h-0.5 bg-white/5 rounded-full mt-2">

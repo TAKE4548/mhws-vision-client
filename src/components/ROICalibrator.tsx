@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Maximize2, Move, Box, Save, History, ChevronRight, ChevronLeft, Target, MousePointer2, Plus, Minus, Eye, EyeOff, Trash2, FilePlus, Settings2, AlertTriangle, Clock, Upload } from 'lucide-react'
 import InteractiveCanvas from './roi/InteractiveCanvas'
-import { useROIStore, CalibrationStep, ActiveTarget, Rect, RelativeRect, Point } from '../store/roiStore'
+import { useROIStore, type CalibrationStep, type ActiveTarget, type Rect, type RelativeRect, type Point } from '../store/roiStore'
 import { useVisionStore } from '../store/visionStore'
 import { apiClient } from '../lib/api-client'
+import type { ROIProfile } from '../api/generated/model';
 
 const STEPS: { id: CalibrationStep; label: string; description: string }[] = [
   { id: 'setup', label: '0. Setup', description: 'プロファイルを新規作成するか、既存の設定をメンテナンスしてください。' },
@@ -69,7 +70,6 @@ const ROICalibrator = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [videoDuration, setVideoDuration] = useState(0);
 
-  // フロントエンド側でのフレーム抽出 (REQ-020)
   const captureFrameFE = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -83,8 +83,7 @@ const ROICalibrator = () => {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/webp');
         setPreviewImage(dataUrl);
-        // 解像度を自動セット (不要な更新を防ぐため値が違う時のみ)
-        const currentRes = useROIStore.getState().profile.resolution;
+        const currentRes = useROIStore.getState().profile.resolution!;
         if (canvas.width !== currentRes.width || canvas.height !== currentRes.height) {
           useROIStore.getState().setResolution(canvas.width, canvas.height);
         }
@@ -94,7 +93,6 @@ const ROICalibrator = () => {
     }
   };
 
-  // 既存プロファイルが選択されたら名前と説明を同期 (REQ-019)
   useEffect(() => {
     if (selectedProfileId && profile) {
       setProfileName(profile.name || 'New Profile');
@@ -102,59 +100,49 @@ const ROICalibrator = () => {
     }
   }, [selectedProfileId, profile]);
 
-  // sourceFile がセットされたら URL を生成してビデオにロード
   useEffect(() => {
     if (sourceFile && videoRef.current) {
-      console.log('[ROICalibrator] Loading source file to video element');
       const url = URL.createObjectURL(sourceFile);
       videoRef.current.src = url;
-      // 初期フレームを表示
       videoRef.current.currentTime = timestampMs / 1000;
       return () => {
-        console.log('[ROICalibrator] Revoking video source URL');
         URL.revokeObjectURL(url);
       };
     }
   }, [sourceFile]);
+
   const [showOverlays, setShowOverlays] = useState(true);
 
-  // 初回ロード時にプロファイル一覧を取得
   useEffect(() => {
     fetchProfiles();
   }, []);
 
-  // プレビュー画像の自動更新
   useEffect(() => {
-    // REQ-020: セットアップ中またはソース指定中は、ローカルでのキャプチャを優先するため API フェッチしない
     if (step === 'setup' || step === 'source') return;
 
     let currentUrl: string | null = null;
     let canceled = false;
 
     const fetchPreview = async () => {
-      setPreviewImage(null); // ステップ遷移時の残像を防ぐためにリセット (REQ-019 Follow-up)
+      setPreviewImage(null); 
       try {
         let params: any = {};
         if (step === 'parent') {
-          // STEP 1: 全画面を表示
-          params = { x: 0, y: 0, w: profile.resolution.width, h: profile.resolution.height };
+          params = { x: 0, y: 0, w: profile.resolution!.width, h: profile.resolution!.height };
         } else if (step === 'items') {
-          // STEP 2: WINDOW AREA (Parent) の範囲を表示
           params = { ...profile.parent_window };
         } else if (step === 'normalization') {
-          // STEP 3: Slot 1 Level の範囲を表示 (仕様通り)
-          const slot1 = profile.slots[0];
+          const slot1 = profile.slots![0];
           params = {
-            x: profile.parent_window.x + slot1.level.x_rel,
-            y: profile.parent_window.y + slot1.level.y_rel,
-            w: slot1.level.w,
-            h: slot1.level.h
+            x: profile.parent_window!.x + slot1.level!.x_rel,
+            y: profile.parent_window!.y + slot1.level!.y_rel,
+            w: slot1.level!.w,
+            h: slot1.level!.h
           };
         } else {
           params = { ...profile.parent_window };
         }
 
-        // REQ-019: OpenAPI準拠 (バイナリ取得)
         const { jobId, selectedProfileId, timestampMs } = useROIStore.getState();
         const response = await apiClient.get('/vision/preview', { 
           params: {
@@ -167,26 +155,18 @@ const ROICalibrator = () => {
         });
 
         if (canceled) return;
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
 
-        // 以前のObjectURLを解放
-        if (currentUrl) {
-          URL.revokeObjectURL(currentUrl);
-        }
-
-        // 新しいURLを生成
         const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
         const url = URL.createObjectURL(blob);
         currentUrl = url;
         setPreviewImage(url);
 
-        // 初回ロード時または画像サイズ変更時に実際の解像度を検知して更新 (REQ-019 Follow-up)
         if (step === 'parent') {
           const img = new Image();
           img.onload = () => {
             if (canceled) return;
-            // useROIStoreのsetResolutionを呼ぶ必要があるが、ここではローカル変数としてimgがある
-            // profile.resolution.width/heightは最新の状態を使いたい
-            if (img.naturalWidth !== profile.resolution.width || img.naturalHeight !== profile.resolution.height) {
+            if (img.naturalWidth !== profile.resolution!.width || img.naturalHeight !== profile.resolution!.height) {
               console.log(`[ROICalibrator] Syncing resolution: ${img.naturalWidth}x${img.naturalHeight}`);
               useROIStore.getState().setResolution(img.naturalWidth, img.naturalHeight);
             }
@@ -216,28 +196,22 @@ const ROICalibrator = () => {
     if (currentIndex < STEPS.length - 1) {
       let nextStep = STEPS[currentIndex + 1].id;
       
-      // 既存プロファイルメンテナンス時は、動画選択(source)をスキップして2. Window Areaへ
       if (step === 'setup' && selectedProfileId) {
         nextStep = 'parent';
       }
-      // Source ステップから進む際のサーバー同期 (REQ-020)
       if (step === 'source') {
         if (!previewImage || !sourceFile) {
           alert('先にキャプチャ画像を確定してください。');
           return;
         }
         try {
-          // サーバーにファイルをアップロードしてコンテキストを作成
-          // ここでは timestampMs は シークバー経由で更新されている想定
           await prepareSource(sourceFile, timestampMs);
         } catch (err) {
-          // エラー時は次に進ませない
           return;
         }
       }
 
       setStep(nextStep);
-      // Normalizationステップに入ったら、デフォルトで背景ポイントを選択
       if (nextStep === 'normalization') {
         setActiveTarget('bg_point');
       }
@@ -255,7 +229,6 @@ const ROICalibrator = () => {
     const { jobId, timestampMs, selectedProfileId, profile } = useROIStore.getState();
     setIsSaving(true);
     try {
-      // REQ-019: OpenAPI (ROIProfile) 準拠の平坦な構造
       const payload = {
         ...profile,
         name: profileName,
@@ -265,10 +238,8 @@ const ROICalibrator = () => {
       };
       
       if (selectedProfileId) {
-        // 既存更新 (PUT /config/roi/profiles/{id})
         await apiClient.put(`/config/roi/profiles/${selectedProfileId}`, payload);
       } else {
-        // 新規作成 (POST /config/roi/profiles)
         await apiClient.post('/config/roi/profiles', payload);
       }
 
@@ -283,41 +254,36 @@ const ROICalibrator = () => {
     }
   };
 
-  // 現在のターゲットデータを取得
   const getCurrentActiveData = () => {
     if (step === 'parent') return profile.parent_window;
     if (step === 'items') {
       if (activeTarget === 'rarity') return profile.rarity;
       if (activeTarget.includes('slot')) {
-        const slot = profile.slots.find(s => s.id === activeId);
+        const slot = profile.slots!.find((s: any) => s.id === activeId);
         return activeTarget === 'slot_icon' ? slot?.icon : slot?.level;
       }
       if (activeTarget.includes('skill')) {
-        const skill = profile.skills.find(s => s.id === activeId);
+        const skill = profile.skills!.find((s: any) => s.id === activeId);
         return activeTarget === 'skill_name' ? skill?.name : skill?.level;
       }
     }
     if (step === 'normalization') {
-      return activeTarget === 'bg_point' ? profile.normalization.bg_point : profile.normalization.frame_point;
+      return activeTarget === 'bg_point' ? profile.normalization!.bg_point : profile.normalization!.frame_point;
     }
     return null;
   };
 
   const activeData = getCurrentActiveData();
 
-  // 解像度の一致チェック
-  const isResolutionMatched = (profileRes?: string) => {
-    if (!videoMeta || !profileRes) return true; // 情報がない場合は警告しない
-    const currentRes = `${videoMeta.width}x${videoMeta.height}`;
-    return profileRes === currentRes;
+  const isResolutionMatched = (pRes: ROIProfile['resolution']) => {
+    if (!videoMeta || !pRes) return true;
+    return pRes.width === videoMeta.width && pRes.height === videoMeta.height;
   };
 
   return (
     <div className="grid grid-cols-12 gap-8 animate-in fade-in duration-700">
-      {/* Simulation Area */}
       <div className="col-span-8 flex flex-col gap-6">
         <div className="relative group">
-          {/* 隠しビデオとキャンバス（常にマウントしておき、Blob URL の消失を防ぐ） */}
           <div className="hidden">
             <video 
               ref={videoRef} 
@@ -367,7 +333,6 @@ const ROICalibrator = () => {
           )}
           
           <div className="absolute top-4 right-4 flex items-center gap-3">
-            {/* Visibility Toggle (REQ-019 Follow-up) */}
             <button 
               onClick={() => setShowOverlays(!showOverlays)}
               className={`p-2 rounded-full backdrop-blur-xl border border-mhw-accent/30 transition-all ${showOverlays ? 'bg-mhw-accent text-mhw-bg' : 'bg-black/60 text-mhw-accent hover:bg-black/80'}`}
@@ -385,7 +350,6 @@ const ROICalibrator = () => {
           </div>
         </div>
 
-        {/* Step Navigation Bar */}
         <div className="flex items-center justify-between p-4 bg-mhw-panel border border-mhw-accent/20 rounded">
           <div className="flex gap-4 items-center">
             {STEPS.map((s, idx) => (
@@ -415,7 +379,6 @@ const ROICalibrator = () => {
         </div>
       </div>
 
-      {/* Control Panel */}
       <div className="col-span-4 space-y-6">
         <div className="mhw-panel border border-mhw-accent/20 p-6 space-y-6 flex flex-col h-full overflow-hidden">
           <div className="border-b border-mhw-accent/10 pb-4">
@@ -426,7 +389,6 @@ const ROICalibrator = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
-            {/* Fine Tuning Controls (Numerical) */}
             {activeData && step !== 'save' && (
               <div className="p-4 bg-mhw-accent/5 border border-mhw-accent/10 rounded space-y-4">
                 <div className="flex items-center gap-2 text-[10px] font-black text-mhw-accent uppercase tracking-widest">
@@ -434,24 +396,24 @@ const ROICalibrator = () => {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  {'x' in activeData ? (
+                  { 'x' in activeData ? (
                     <>
-                      <NumericalAdjuster label="X Offset" value={activeData.x} onChange={v => updateParentWindow({ x: v })} max={1920} />
-                      <NumericalAdjuster label="Y Offset" value={activeData.y} onChange={v => updateParentWindow({ y: v })} max={1080} />
-                      <NumericalAdjuster label="Width" value={activeData.w} onChange={v => updateParentWindow({ w: v })} max={1920} />
-                      <NumericalAdjuster label="Height" value={activeData.h} onChange={v => updateParentWindow({ h: v })} max={1080} />
+                      <NumericalAdjuster label="X Offset" value={(activeData as Rect).x} onChange={v => updateParentWindow({ x: v })} max={1920} />
+                      <NumericalAdjuster label="Y Offset" value={(activeData as Rect).y} onChange={v => updateParentWindow({ y: v })} max={1080} />
+                      <NumericalAdjuster label="Width" value={(activeData as Rect).w} onChange={v => updateParentWindow({ w: v })} max={1920} />
+                      <NumericalAdjuster label="Height" value={(activeData as Rect).h} onChange={v => updateParentWindow({ h: v })} max={1080} />
                     </>
                   ) : 'x_rel' in activeData && 'w' in activeData ? (
                     <>
-                      <NumericalAdjuster label="X (Rel)" value={(activeData as RelativeRect).x_rel} onChange={v => updateRelativeRect(activeTarget, activeId, { x_rel: v })} max={profile.parent_window.w} />
-                      <NumericalAdjuster label="Y (Rel)" value={(activeData as RelativeRect).y_rel} onChange={v => updateRelativeRect(activeTarget, activeId, { y_rel: v })} max={profile.parent_window.h} />
-                      <NumericalAdjuster label="Width" value={(activeData as RelativeRect).w} onChange={v => updateRelativeRect(activeTarget, activeId, { w: v })} max={profile.parent_window.w} />
-                      <NumericalAdjuster label="Height" value={(activeData as RelativeRect).h} onChange={v => updateRelativeRect(activeTarget, activeId, { h: v })} max={profile.parent_window.h} />
+                      <NumericalAdjuster label="X (Rel)" value={(activeData as RelativeRect).x_rel} onChange={v => updateRelativeRect(activeTarget, activeId, { x_rel: v })} max={profile.parent_window!.w} />
+                      <NumericalAdjuster label="Y (Rel)" value={(activeData as RelativeRect).y_rel} onChange={v => updateRelativeRect(activeTarget, activeId, { y_rel: v })} max={profile.parent_window!.h} />
+                      <NumericalAdjuster label="Width" value={(activeData as RelativeRect).w} onChange={v => updateRelativeRect(activeTarget, activeId, { w: v })} max={profile.parent_window!.w} />
+                      <NumericalAdjuster label="Height" value={(activeData as RelativeRect).h} onChange={v => updateRelativeRect(activeTarget, activeId, { h: v })} max={profile.parent_window!.h} />
                     </>
                   ) : 'x_rel' in activeData ? (
                     <>
-                      <NumericalAdjuster label="X (Rel)" value={(activeData as Point).x_rel} onChange={v => updatePoint(activeTarget as any, { x_rel: v })} max={profile.parent_window.w} />
-                      <NumericalAdjuster label="Y (Rel)" value={(activeData as Point).y_rel} onChange={v => updatePoint(activeTarget as any, { y_rel: v })} max={profile.parent_window.h} />
+                      <NumericalAdjuster label="X (Rel)" value={(activeData as Point).x_rel} onChange={v => updatePoint(activeTarget as any, { x_rel: v })} max={profile.parent_window!.w} />
+                      <NumericalAdjuster label="Y (Rel)" value={(activeData as Point).y_rel} onChange={v => updatePoint(activeTarget as any, { y_rel: v })} max={profile.parent_window!.h} />
                     </>
                   ) : null}
                 </div>
@@ -570,7 +532,7 @@ const ROICalibrator = () => {
                             </div>
                             <div className="flex items-center gap-1 text-[9px] font-mono text-white/20">
                               <Clock size={10} />
-                              {p.last_calibrated_at ? new Date(p.last_calibrated_at).toLocaleDateString() : '---'}
+                              {(p as any).last_calibrated_at ? new Date((p as any).last_calibrated_at).toLocaleDateString() : '---'}
                             </div>
                           </div>
                           
@@ -582,7 +544,7 @@ const ROICalibrator = () => {
                           )}
                         </div>
 
-                        {selectedProfileId === p.id && (
+                        {selectedProfileId === p.profile_id && (
                           <div className="mt-3 pt-3 border-t border-mhw-accent/20 flex gap-2 animate-in slide-in-from-top-2 duration-300">
                             <button 
                               onClick={() => setStep('parent')}
@@ -653,7 +615,6 @@ const ROICalibrator = () => {
                              const time = parseFloat(e.target.value);
                              if (videoRef.current) {
                                videoRef.current.currentTime = time;
-                               // timestampMs は ms 単位なので 1000 倍
                                useROIStore.setState({ timestampMs: Math.round(time * 1000) });
                              }
                            }}
@@ -695,7 +656,7 @@ const ROICalibrator = () => {
                   <div className="grid grid-cols-2 gap-2 text-[10px]">
                     <div className="flex items-center gap-2">
                        <Maximize2 size={10} className="text-mhw-accent" />
-                       <span className="font-mono">{profile.resolution.width}x{profile.resolution.height}</span>
+                       <span className="font-mono">{profile.resolution!.width}x{profile.resolution!.height}</span>
                     </div>
                     <div className="flex items-center gap-2">
                        <Clock size={10} className="text-mhw-accent" />
@@ -728,4 +689,3 @@ const ROICalibrator = () => {
 }
 
 export default ROICalibrator
-

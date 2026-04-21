@@ -8,8 +8,8 @@ import { API_BASE_URL, API_HOST } from '../lib/api-client';
 
 const TalismanCard: React.FC<{ talisman: Talisman, onClick: () => void }> = ({ talisman, onClick }) => {
   const imageUrl = talisman.image_url || `${API_HOST}/assets/crops/${talisman.capture_id}.webp`;
-  const timestamp = talisman.timestamp_ms 
-    ? new Date(talisman.timestamp_ms).toLocaleTimeString('ja-JP', { hour12: false })
+  const timestamp = (talisman as any).timestamp_ms 
+    ? new Date((talisman as any).timestamp_ms).toLocaleTimeString('ja-JP', { hour12: false })
     : new Date().toLocaleTimeString('ja-JP', { hour12: false });
 
   const isProcessing = talisman.validation_status === 'processing';

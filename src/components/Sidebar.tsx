@@ -14,10 +14,6 @@ const Sidebar = () => {
     setActiveTab, 
     isSidebarCollapsed, 
     toggleSidebar,
-    apiMode,
-    setApiMode,
-    apiErrorMode,
-    setApiErrorMode
   } = useUIStore()
 
   const menuItems = [
@@ -95,60 +91,8 @@ const Sidebar = () => {
         })}
       </nav>
 
-      {/* System Settings / API Mode Toggle (REQ-014) */}
-      <div className={cn("px-4 py-4 space-y-4 border-t border-white/5", isSidebarCollapsed ? "px-2" : "px-6")}>
-        {!isSidebarCollapsed && (
-          <div className="font-label-tech text-[8px] text-white/20 uppercase tracking-widest mb-1">System Mode</div>
-        )}
-        
-        {/* API Mode Toggle */}
-        <button
-          onClick={() => setApiMode(apiMode === 'live' ? 'stub' : 'live')}
-          className={cn(
-            "w-full flex items-center transition-all duration-300 rounded-tech overflow-hidden",
-            isSidebarCollapsed ? "justify-center h-10" : "px-3 py-2 gap-3",
-            apiMode === 'stub' 
-              ? "bg-status-error/10 border border-status-error/30 text-status-error" 
-              : "bg-surface-bright/5 border border-white/5 text-white/40 hover:bg-white/10"
-          )}
-          title={apiMode === 'stub' ? "Switch to Live Mode" : "Switch to Stub Mode"}
-        >
-          <div className={cn(
-            "w-1.5 h-1.5 rounded-full",
-            apiMode === 'stub' ? "bg-status-error shadow-[0_0_5px_#f87171]" : "bg-white/20"
-          )} />
-          {!isSidebarCollapsed && (
-            <span className="font-space-tech text-[10px] uppercase font-black tracking-wider">
-              {apiMode === 'stub' ? 'API_STUB_MODE' : 'LIVE_SERVER'}
-            </span>
-          )}
-        </button>
-
-        {/* Error Simulation Toggle (Only active in Stub mode) */}
-        {apiMode === 'stub' && (
-          <button
-            onClick={() => setApiErrorMode(!apiErrorMode)}
-            className={cn(
-              "w-full flex items-center transition-all duration-300 rounded-tech overflow-hidden border animate-in fade-in slide-in-from-bottom-2",
-              isSidebarCollapsed ? "justify-center h-10" : "px-3 py-2 gap-3",
-              apiErrorMode 
-                ? "bg-status-error text-white border-status-error shadow-[0_0_10px_rgba(239,68,68,0.3)]" 
-                : "bg-surface-lowest border-status-error/30 text-status-error/60"
-            )}
-            title={apiErrorMode ? "Stop Simulated Errors" : "Simulate API Error"}
-          >
-            <Info size={14} className={apiErrorMode ? "animate-pulse" : ""} />
-            {!isSidebarCollapsed && (
-              <span className="font-space-tech text-[10px] uppercase font-black tracking-wider">
-                {apiErrorMode ? 'ERROR_SIM_ON' : 'ERR_SIM_OFF'}
-              </span>
-            )}
-          </button>
-        )}
-      </div>
-
       {/* Footer Info */}
-      <div className="p-6">
+      <div className="p-6 mt-auto">
         <div className={cn(
           "kinetic-surface-mid transition-all duration-300",
           isSidebarCollapsed ? "p-2 aspect-square flex items-center justify-center" : "p-4"

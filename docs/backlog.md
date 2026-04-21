@@ -256,7 +256,7 @@
 
 ### REQ-018: 動画解析プログレスバー表示の異常数値修正
 - **Type**: bug
-- **Status**: ready
+- **Status**: in-progress
 - **Current step**: none
 - **Priority**: P1
 - **Surface**: 解析開始直後にプログレスバーが1000%を超え、最終的に8000%などの異常な値を示す。
