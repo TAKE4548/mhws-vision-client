@@ -27,16 +27,28 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
   const [imgSrc, setImgSrc] = useState<string | null>(previewImage);
   const [actualRatio, setActualRatio] = useState<string | null>(null);
 
+  // ステップ移行時にアスペクト比をリセットして再計算を強制
+  useEffect(() => {
+    setActualRatio(null);
+  }, [step]);
+
   useEffect(() => {
     setImgSrc(previewImage);
-    if (!previewImage || step === 'parent') {
+    // previewImageがnullになったらactualRatioもリセット
+    if (!previewImage) {
       setActualRatio(null);
     }
-  }, [previewImage, step]);
+  }, [previewImage]);
 
   const handleImageError = () => {
-    console.warn('[InteractiveCanvas] Preview loading failed, falling back to sample image.');
-    setImgSrc(sampleImg);
+    console.warn(`[InteractiveCanvas] Preview loading failed for step: ${step}`);
+    // 全画面キャプチャへのフォールバックは、Step 1 (Source) 以外では行わない
+    // これにより、子ROI設定中に全画面が表示されるのを防ぐ
+    if (step === 'source') {
+      setImgSrc(sampleImg);
+    } else {
+      setImgSrc(null);
+    }
   };
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {

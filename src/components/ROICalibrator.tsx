@@ -83,6 +83,7 @@ const ROICalibrator = () => {
     fetchProfiles();
   }, []);
 
+  // プレビュー自動更新
   useEffect(() => {
     if (step === 'setup' || step === 'source') return;
 
@@ -90,6 +91,7 @@ const ROICalibrator = () => {
     let canceled = false;
 
     const fetchPreview = async () => {
+      // フェッチ開始時にプレビューをクリア（スケルトン表示用）
       setPreviewImage(null); 
       try {
         let params: any = {};
@@ -145,12 +147,12 @@ const ROICalibrator = () => {
         }
       } catch (error) {
         if (!canceled) {
-          console.error('Failed to fetch preview:', error);
+          console.error('[ROICalibrator] Failed to fetch preview:', error);
         }
       }
     };
 
-    const timer = setTimeout(fetchPreview, 250);
+    const timer = setTimeout(fetchPreview, 100);
     
     return () => {
       canceled = true;
@@ -159,7 +161,7 @@ const ROICalibrator = () => {
         URL.revokeObjectURL(currentUrl);
       }
     };
-  }, [step, activeTarget, activeId, profile, setPreviewImage]);
+  }, [step, activeTarget, activeId, profile.parent_window, profile.resolution, setPreviewImage]);
 
   const handleNext = async () => {
     const currentIndex = STEPS.findIndex(s => s.id === step);

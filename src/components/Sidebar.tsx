@@ -1,6 +1,7 @@
 import React from 'react'
 import { LayoutDashboard, Target, Settings, Info, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useUIStore } from '../store/uiStore'
+import { useServerStore } from '../store/serverStore'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -15,6 +16,11 @@ const Sidebar = () => {
     isSidebarCollapsed, 
     toggleSidebar,
   } = useUIStore()
+
+  const {
+    isStubMode,
+    setStubMode
+  } = useServerStore()
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -92,19 +98,59 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer Info */}
-      <div className="p-6 mt-auto">
+      <div className="p-6 mt-auto space-y-4">
+        {/* API Mode Toggle */}
+        {!isSidebarCollapsed && (
+          <div className="animate-in fade-in duration-500">
+            <div className="font-label-tech text-[8px] text-white/20 uppercase tracking-widest mb-2">API Connection Mode</div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setStubMode(true)}
+                className={cn(
+                  "py-1 px-2 text-[8px] font-black tracking-tighter uppercase rounded-sm border transition-all",
+                  isStubMode 
+                    ? "bg-kinetic-blue text-white border-kinetic-blue shadow-[0_0_10px_rgba(56,189,248,0.3)]" 
+                    : "bg-transparent text-white/40 border-white/10 hover:border-white/30"
+                )}
+              >
+                Stub Mode
+              </button>
+              <button
+                onClick={() => setStubMode(false)}
+                className={cn(
+                  "py-1 px-2 text-[8px] font-black tracking-tighter uppercase rounded-sm border transition-all",
+                  !isStubMode 
+                    ? "bg-kinetic-amber text-black border-kinetic-amber shadow-[0_0_10px_rgba(240,200,80,0.3)]" 
+                    : "bg-transparent text-white/40 border-white/10 hover:border-white/30"
+                )}
+              >
+                Live Server
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className={cn(
           "kinetic-surface-mid transition-all duration-300",
           isSidebarCollapsed ? "p-2 aspect-square flex items-center justify-center" : "p-4"
         )}>
           {isSidebarCollapsed ? (
-            <div className="w-2 h-2 rounded-full bg-kinetic-amber animate-pulse shadow-[0_0_8px_#ffc174]" />
+            <div className={cn(
+              "w-2 h-2 rounded-full animate-pulse shadow-[0_0_8px_currentColor]",
+              isStubMode ? "text-kinetic-blue bg-kinetic-blue" : "text-kinetic-amber bg-kinetic-amber"
+            )} />
           ) : (
             <div className="animate-in fade-in duration-500">
               <div className="font-label-tech text-[8px] text-white/20 uppercase tracking-widest mb-1">Status</div>
-              <div className="font-space-tech text-[10px] font-black text-kinetic-amber tracking-widest flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-kinetic-amber animate-pulse shadow-[0_0_5px_#ffc174]" />
-                STABLE_SCAN
+              <div className={cn(
+                "font-space-tech text-[10px] font-black tracking-widest flex items-center gap-2",
+                isStubMode ? "text-kinetic-blue" : "text-kinetic-amber"
+              )}>
+                <span className={cn(
+                  "w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_5px_currentColor]",
+                  isStubMode ? "bg-kinetic-blue" : "bg-kinetic-amber"
+                )} />
+                {isStubMode ? 'MOCK_ENGINE' : 'LIVE_STABLE'}
               </div>
             </div>
           )}

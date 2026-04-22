@@ -19,6 +19,13 @@ async function enableMocking() {
   if (!import.meta.env.DEV) {
     return;
   }
+
+  // LocalStorageからスタブモード設定を確認
+  const isStubMode = localStorage.getItem('api_stub_mode') !== 'false';
+  if (!isStubMode) {
+    console.log('[App] Live Server Mode: MSW is disabled.');
+    return;
+  }
  
   // MSW ワーカーの動的インポートと起動
   const { worker } = await import('./mocks/browser');
