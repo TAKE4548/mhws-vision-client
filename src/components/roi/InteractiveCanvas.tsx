@@ -27,17 +27,9 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
   const [imgSrc, setImgSrc] = useState<string | null>(previewImage);
   const [actualRatio, setActualRatio] = useState<string | null>(null);
 
-  // ステップ移行時にアスペクト比をリセットして再計算を強制
-  useEffect(() => {
-    setActualRatio(null);
-  }, [step]);
-
+  // 画像ソースの同期
   useEffect(() => {
     setImgSrc(previewImage);
-    // previewImageがnullになったらactualRatioもリセット
-    if (!previewImage) {
-      setActualRatio(null);
-    }
   }, [previewImage]);
 
   const handleImageError = () => {

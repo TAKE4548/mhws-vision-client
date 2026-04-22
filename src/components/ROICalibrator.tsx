@@ -83,6 +83,14 @@ const ROICalibrator = () => {
     fetchProfiles();
   }, []);
 
+  // プレビュー背景のカテゴリ計算
+  const previewCategory = (() => {
+    if (['setup', 'source', 'parent'].includes(step)) return 'FULL_FRAME';
+    if (step === 'items') return 'PARENT_WINDOW';
+    if (step === 'normalization') return 'SLOT_PREVIEW';
+    return 'OTHER';
+  })();
+
   // プレビュー自動更新
   useEffect(() => {
     if (step === 'setup' || step === 'source') return;
@@ -91,8 +99,6 @@ const ROICalibrator = () => {
     let canceled = false;
 
     const fetchPreview = async () => {
-      // フェッチ開始時にプレビューをクリア（スケルトン表示用）
-      setPreviewImage(null); 
       try {
         let params: any = {};
         if (step === 'parent') {
@@ -115,7 +121,6 @@ const ROICalibrator = () => {
           params = { ...profile.parent_window };
         }
 
-        const { jobId, selectedProfileId, timestampMs } = useROIStore.getState();
         const response = await apiClient.get('/vision/preview', { 
           params: {
             ...params,
@@ -161,7 +166,7 @@ const ROICalibrator = () => {
         URL.revokeObjectURL(currentUrl);
       }
     };
-  }, [step, activeTarget, activeId, profile.parent_window, profile.resolution, setPreviewImage]);
+  }, [previewCategory, step, jobId, timestampMs, selectedProfileId]);
 
   const handleNext = async () => {
     const currentIndex = STEPS.findIndex(s => s.id === step);

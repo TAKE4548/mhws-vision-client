@@ -391,7 +391,7 @@
 
 ### REQ-026: ROI操作時のレスポンス向上とレイアウト安定化
 - **Type**: refinement
-- **Status**: ready
+- **Status**: done (2026-04-23)
 - **Current step**: none
 - **Priority**: P1
 - **Surface**: ROI操作中の背景再描画による遅延と、レイアウトのガタつきの解消。
