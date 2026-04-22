@@ -46,11 +46,11 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
   };
 
   const calculatedRatio = useMemo(() => {
-    if (step === 'parent') return `${profile.resolution!.width} / ${profile.resolution!.height}`;
-    if (step === 'items' || step === 'save') return `${profile.parent_window!.w} / ${profile.parent_window!.h}`;
-    if (step === 'normalization') {
-      const slot = profile.slots![0];
-      return `${slot.level!.w} / ${slot.level!.h}`;
+    if (step === 'parent' && profile.resolution) return `${profile.resolution.width} / ${profile.resolution.height}`;
+    if ((step === 'items' || step === 'save') && profile.parent_window) return `${profile.parent_window.w} / ${profile.parent_window.h}`;
+    if (step === 'normalization' && profile.slots) {
+      const slot = profile.slots[0];
+      if (slot?.level) return `${slot.level.w} / ${slot.level.h}`;
     }
     return '16 / 9';
   }, [step, profile.resolution, profile.parent_window, profile.slots]);
@@ -61,15 +61,15 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
     if (step === 'parent') return profile.parent_window;
     if (activeTarget === 'rarity') return profile.rarity;
     if (activeTarget === 'slot_icon' || activeTarget === 'slot_level') {
-      const slot = profile.slots!.find(s => s.id === activeId);
+      const slot = profile.slots?.find(s => s.id === activeId);
       return slot ? (activeTarget === 'slot_icon' ? slot.icon : slot.level) : null;
     }
     if (activeTarget === 'skill_name' || activeTarget === 'skill_level') {
-      const skill = profile.skills!.find(s => s.id === activeId);
+      const skill = profile.skills?.find(s => s.id === activeId);
       return skill ? (activeTarget === 'skill_name' ? skill.name : skill.level) : null;
     }
     if (activeTarget === 'bg_point' || activeTarget === 'frame_point') {
-      return (profile.normalization as any)![activeTarget];
+      return (profile.normalization as any)?.[activeTarget];
     }
     return null;
   }, [step, activeTarget, activeId, profile]);
@@ -87,9 +87,10 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
     const pos = getNormalizedCoords(e.clientX, e.clientY);
     
     if (step === 'normalization') {
-      const slot1 = profile.slots![0];
-      const x_rel = Math.round(slot1.level!.x_rel + (pos.x * slot1.level!.w));
-      const y_rel = Math.round(slot1.level!.y_rel + (pos.y * slot1.level!.h));
+      const slot1 = profile.slots?.[0];
+      if (!slot1?.level) return;
+      const x_rel = Math.round(slot1.level.x_rel + (pos.x * slot1.level.w));
+      const y_rel = Math.round(slot1.level.y_rel + (pos.y * slot1.level.h));
       updatePoint(activeTarget as 'bg_point' | 'frame_point', { x_rel, y_rel });
       return;
     }
@@ -110,8 +111,9 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
 
     if (step === 'parent') {
       const startRect = interaction.startValue as Rect;
-      const dx_px = dx * profile.resolution!.width!;
-      const dy_px = dy * profile.resolution!.height!;
+      if (!profile.resolution) return;
+      const dx_px = dx * (profile.resolution.width || 0);
+      const dy_px = dy * (profile.resolution.height || 0);
       
       const updates: Partial<Rect> = {};
       const type = interaction.type || '';
@@ -132,8 +134,9 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
       updateParentWindow(updates);
     } else if (step === 'items') {
       const startRel = interaction.startValue as RelativeRect;
-      const dx_px = Math.round(dx * profile.parent_window!.w);
-      const dy_px = Math.round(dy * profile.parent_window!.h);
+      if (!profile.parent_window) return;
+      const dx_px = Math.round(dx * profile.parent_window.w);
+      const dy_px = Math.round(dy * profile.parent_window.h);
 
       const updates: Partial<RelativeRect> = {};
       const type = interaction.type || '';
@@ -173,37 +176,84 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
     };
   }, [interaction, handleMouseMove, handleMouseUp]);
 
-  const renderBox = useMemo(() => {
-    if (!currentTarget) return null;
-    
-    if (step === 'parent') {
-      const r = currentTarget as Rect;
-      return { 
-        x: (r.x / profile.resolution!.width!) * 100, 
-        y: (r.y / profile.resolution!.height!) * 100, 
-        w: (r.w / profile.resolution!.width!) * 100, 
-        h: (r.h / profile.resolution!.height!) * 100 
-      };
-    } else if (step === 'items') {
-      const r = currentTarget as RelativeRect;
-      return { 
-        x: (r.x_rel / profile.parent_window!.w) * 100, 
-        y: (r.y_rel / profile.parent_window!.h) * 100, 
-        w: (r.w / profile.parent_window!.w) * 100, 
-        h: (r.h / profile.parent_window!.h) * 100 
-      };
-    } else if (step === 'normalization') {
-      const r = currentTarget as Point;
-      const slot1 = profile.slots![0];
-      return { 
-        x: ((r.x_rel - slot1.level!.x_rel) / slot1.level!.w) * 100, 
-        y: ((r.y_rel - slot1.level!.y_rel) / slot1.level!.h) * 100, 
-        w: 0, h: 0, 
-        isPoint: true 
-      };
+  const renderBoxes = useMemo(() => {
+    if (step === 'parent' && profile.parent_window && profile.resolution) {
+      const r = profile.parent_window;
+      const res = profile.resolution;
+      if (!res.width || !res.height) return [];
+      return [{
+        x: (r.x / res.width) * 100,
+        y: (r.y / res.height) * 100,
+        w: (r.w / res.width) * 100,
+        h: (r.h / res.height) * 100,
+        isActive: true,
+        id: 'parent'
+      }];
     }
-    return null;
-  }, [currentTarget, step, profile.parent_window, profile.resolution, profile.slots]);
+
+    if (step === 'items') {
+      const results: any[] = [];
+      
+      // Rarity
+      if (activeTarget === 'rarity' && profile.rarity && profile.parent_window) {
+        const r = profile.rarity;
+        const pw = profile.parent_window;
+        results.push({
+          x: (r.x_rel / pw.w) * 100,
+          y: (r.y_rel / pw.h) * 100,
+          w: (r.w / pw.w) * 100,
+          h: (r.h / pw.h) * 100,
+          isActive: true,
+          target: 'rarity',
+          id: 0
+        });
+      }
+
+      // Slots/Skills (Category-based grouping)
+      const isSlot = activeTarget.includes('slot');
+      const isSkill = activeTarget.includes('skill');
+      
+      if ((isSlot || isSkill) && profile.parent_window) {
+        const list = isSlot ? profile.slots : profile.skills;
+        const pw = profile.parent_window;
+        list?.forEach((item: any, i: number) => {
+          let r = null;
+          if (activeTarget === 'slot_icon') r = item.icon;
+          if (activeTarget === 'slot_level') r = item.level;
+          if (activeTarget === 'skill_name') r = item.name;
+          if (activeTarget === 'skill_level') r = item.level;
+
+          if (r) {
+            results.push({
+              x: (r.x_rel / pw.w) * 100,
+              y: (r.y_rel / pw.h) * 100,
+              w: (r.w / pw.w) * 100,
+              h: (r.h / pw.h) * 100,
+              isActive: i === activeId,
+              target: activeTarget,
+              id: i
+            });
+          }
+        });
+      }
+      return results;
+    }
+
+    if (step === 'normalization' && profile.normalization && profile.slots) {
+      const r = activeTarget === 'bg_point' ? profile.normalization.bg_point : profile.normalization.frame_point;
+      const slot1 = profile.slots[0];
+      if (r && slot1?.level) {
+        return [{
+          x: ((r.x_rel - slot1.level.x_rel) / slot1.level.w) * 100,
+          y: ((r.y_rel - slot1.level.y_rel) / slot1.level.h) * 100,
+          w: 0, h: 0,
+          isPoint: true,
+          isActive: true
+        }];
+      }
+    }
+    return [];
+  }, [step, activeTarget, activeId, profile]);
 
   return (
     <div 
@@ -237,38 +287,52 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
           <filter id="glow-amber"><feGaussianBlur stdDeviation="0.4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         </defs>
 
-        {renderBox && !renderBox.isPoint && (
-          <>
-            <path
-              fill="rgba(0,0,0,0.6)"
-              fillRule="evenodd"
-              d={`M 0 0 H 100 V 100 H 0 Z M ${renderBox.x} ${renderBox.y} h ${renderBox.w} v ${renderBox.h} h ${-renderBox.w} z`}
-            />
-            <rect
-              x={renderBox.x} y={renderBox.y} width={renderBox.w} height={renderBox.h}
-              className="fill-mhw-accent/5 stroke-mhw-accent stroke-[0.3] cursor-move pointer-events-auto"
-              style={{ filter: 'url(#glow-amber)' }}
-              onMouseDown={(e) => handleMouseDown('move', e)}
-            />
-            <g className="pointer-events-auto">
-              <ResizeHandle x={renderBox.x} y={renderBox.y} cursor="nwse-resize" onMouseDown={(e) => handleMouseDown('nw-resize', e)} />
-              <ResizeHandle x={renderBox.x + renderBox.w} y={renderBox.y} cursor="nesw-resize" onMouseDown={(e) => handleMouseDown('ne-resize', e)} />
-              <ResizeHandle x={renderBox.x} y={renderBox.y + renderBox.h} cursor="nesw-resize" onMouseDown={(e) => handleMouseDown('sw-resize', e)} />
-              <ResizeHandle x={renderBox.x + renderBox.w} y={renderBox.y + renderBox.h} cursor="nwse-resize" onMouseDown={(e) => handleMouseDown('se-resize', e)} />
-            </g>
-          </>
-        )}
-
-        {renderBox && renderBox.isPoint && (
-          <g style={{ filter: 'url(#glow-amber)' }}>
-            <circle cx={renderBox.x} cy={renderBox.y} r="2.5" className="fill-transparent stroke-mhw-accent/20 stroke-[0.1]" />
-            <circle cx={renderBox.x} cy={renderBox.y} r="1.2" className="fill-transparent stroke-white/40 stroke-[0.1]" />
-            <line x1={renderBox.x - 2.5} y1={renderBox.y} x2={renderBox.x + 2.5} y2={renderBox.y} className="stroke-mhw-accent/60 stroke-[0.05]" />
-            <line x1={renderBox.x} y1={renderBox.y - 2.5} x2={renderBox.x} y2={renderBox.y + 2.5} className="stroke-mhw-accent/60 stroke-[0.05]" />
-            <circle cx={renderBox.x} cy={renderBox.y} r="0.4" className="fill-mhw-accent" />
-            <text x={renderBox.x + 2} y={renderBox.y - 2} className="fill-mhw-accent text-[1.5px] font-mono uppercase font-bold select-none">PICK</text>
-          </g>
-        )}
+        {renderBoxes.map((box, idx) => (
+          <React.Fragment key={box.id !== undefined && box.target ? `${box.target}-${box.id}` : `box-${idx}`}>
+            {!box.isPoint ? (
+              <>
+                {box.isActive && (
+                  <path
+                    fill="rgba(0,0,0,0.6)"
+                    fillRule="evenodd"
+                    d={`M 0 0 H 100 V 100 H 0 Z M ${box.x} ${box.y} h ${box.w} v ${box.h} h ${-box.w} z`}
+                  />
+                )}
+                <rect
+                  x={box.x} y={box.y} width={box.w} height={box.h}
+                  onClick={() => box.target && setActiveTarget(box.target as ActiveTarget, box.id)}
+                  className={`cursor-move pointer-events-auto transition-all ${
+                    box.isActive 
+                      ? 'fill-mhw-accent/10 stroke-mhw-accent stroke-[0.4]' 
+                      : 'fill-white/5 stroke-white/20 stroke-[0.2] hover:stroke-white/50'
+                  }`}
+                  style={box.isActive ? { filter: 'url(#glow-amber)' } : {}}
+                  onMouseDown={(e) => {
+                    if (!box.isActive) setActiveTarget(box.target as ActiveTarget, box.id);
+                    handleMouseDown('move', e);
+                  }}
+                />
+                {box.isActive && (
+                  <g className="pointer-events-auto">
+                    <ResizeHandle x={box.x} y={box.y} cursor="nwse-resize" onMouseDown={(e) => handleMouseDown('nw-resize', e)} />
+                    <ResizeHandle x={box.x + box.w} y={box.y} cursor="nesw-resize" onMouseDown={(e) => handleMouseDown('ne-resize', e)} />
+                    <ResizeHandle x={box.x} y={box.y + box.h} cursor="nesw-resize" onMouseDown={(e) => handleMouseDown('sw-resize', e)} />
+                    <ResizeHandle x={box.x + box.w} y={box.y + box.h} cursor="nwse-resize" onMouseDown={(e) => handleMouseDown('se-resize', e)} />
+                  </g>
+                )}
+              </>
+            ) : (
+              <g style={{ filter: 'url(#glow-amber)' }}>
+                <circle cx={box.x} cy={box.y} r="2.5" className="fill-transparent stroke-mhw-accent/20 stroke-[0.1]" />
+                <circle cx={box.x} cy={box.y} r="1.2" className="fill-transparent stroke-white/40 stroke-[0.1]" />
+                <line x1={box.x - 2.5} y1={box.y} x2={box.x + 2.5} y2={box.y} className="stroke-mhw-accent/60 stroke-[0.05]" />
+                <line x1={box.x} y1={box.y - 2.5} x2={box.x} y2={box.y + 2.5} className="stroke-mhw-accent/60 stroke-[0.05]" />
+                <circle cx={box.x} cy={box.y} r="0.4" className="fill-mhw-accent" />
+                <text x={box.x + 2} y={box.y - 2} className="fill-mhw-accent text-[1.5px] font-mono uppercase font-bold select-none">PICK</text>
+              </g>
+            )}
+          </React.Fragment>
+        ))}
       </svg>
 
       {showOverlays && (

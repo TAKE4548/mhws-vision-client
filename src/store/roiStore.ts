@@ -44,6 +44,15 @@ interface ROIState {
   previewImage: string | null;
   isLoading: boolean;
   error: string | null;
+
+  // Sync settings
+  isSyncEnabled: boolean;
+  gaps: {
+    slotGapX: number;
+    skillGapY: number;
+    levelGapX: number;
+    skillLevelGapX: number;
+  };
   
   setStep: (step: CalibrationStep) => void;
   setActiveTarget: (target: ActiveTarget, id?: number) => void;
@@ -51,6 +60,10 @@ interface ROIState {
   setResolution: (width: number, height: number) => void;
   setDescription: (desc: string) => void;
   setSourceFile: (file: File | null) => void;
+  
+  setSyncEnabled: (enabled: boolean) => void;
+  updateGaps: (updates: Partial<ROIState['gaps']>) => void;
+  syncAllToPrimary: () => void;
   
   updateParentWindow: (updates: Partial<Rect>) => void;
   updateRelativeRect: (target: ActiveTarget, id: number, updates: Partial<RelativeRect>) => void;
@@ -70,8 +83,8 @@ const DEFAULT_PROFILE: ROIProfile = {
   rarity: { x_rel: 20, y_rel: 20, w: 80, h: 30 },
   slots: [
     { id: 0, icon: { x_rel: 20, y_rel: 80, w: 40, h: 40 }, level: { x_rel: 70, y_rel: 80, w: 30, h: 30 } },
-    { id: 1, icon: { x_rel: 20, y_rel: 130, w: 40, h: 40 }, level: { x_rel: 70, y_rel: 130, w: 30, h: 30 } },
-    { id: 2, icon: { x_rel: 20, y_rel: 180, w: 40, h: 40 }, level: { x_rel: 70, y_rel: 180, w: 30, h: 30 } },
+    { id: 1, icon: { x_rel: 70, y_rel: 80, w: 40, h: 40 }, level: { x_rel: 120, y_rel: 80, w: 30, h: 30 } },
+    { id: 2, icon: { x_rel: 120, y_rel: 80, w: 40, h: 40 }, level: { x_rel: 170, y_rel: 80, w: 30, h: 30 } },
   ],
   skills: [
     { id: 0, name: { x_rel: 20, y_rel: 250, w: 200, h: 30 }, level: { x_rel: 230, y_rel: 250, w: 50, h: 30 } },
@@ -100,6 +113,14 @@ export const useROIStore = create<ROIState>((set, get) => ({
   isLoading: false,
   error: null,
 
+  isSyncEnabled: true,
+  gaps: {
+    slotGapX: 50,
+    skillGapY: 50,
+    levelGapX: 50,
+    skillLevelGapX: 210,
+  },
+
   setStep: (step) => set({ step }),
   setActiveTarget: (target, id = 0) => set({ activeTarget: target, activeId: id }),
   setPreviewImage: (previewImage) => set({ previewImage }),
@@ -112,6 +133,20 @@ export const useROIStore = create<ROIState>((set, get) => ({
   setDescription: (description) => set({ description }),
   setSourceFile: (sourceFile) => set({ sourceFile }),
 
+  setSyncEnabled: (isSyncEnabled) => set({ isSyncEnabled }),
+  updateGaps: (updates) => set(state => {
+    const gaps = { ...state.gaps, ...updates };
+    let profile = { ...state.profile };
+    if (state.isSyncEnabled) {
+      profile = syncProfile(profile, gaps);
+    }
+    return { gaps, profile };
+  }),
+
+  syncAllToPrimary: () => set(state => ({
+    profile: syncProfile(state.profile, state.gaps)
+  })),
+
   updateParentWindow: (updates) => set(state => ({
     profile: {
       ...state.profile,
@@ -120,20 +155,30 @@ export const useROIStore = create<ROIState>((set, get) => ({
   })),
 
   updateRelativeRect: (target, id, updates) => set(state => {
-    const profile = { ...state.profile };
+    let profile = { ...state.profile };
+    
+    // Apply basic update
     if (target === 'rarity') {
       profile.rarity = { ...profile.rarity!, ...updates };
     } else if (target.includes('slot')) {
+      const subTarget = target.split('_')[1]; // icon or level
       profile.slots = profile.slots!.map((s: SlotROI) => s.id === id 
-        ? { ...s, [target.split('_')[1]]: { ...(s as any)[target.split('_')[1]], ...updates } }
+        ? { ...s, [subTarget]: { ...(s as any)[subTarget], ...updates } }
         : s
       );
     } else if (target.includes('skill')) {
+      const subTarget = target.split('_')[1]; // name or level
       profile.skills = profile.skills!.map((s: SkillROI) => s.id === id 
-        ? { ...s, [target.split('_')[1]]: { ...(s as any)[target.split('_')[1]], ...updates } }
+        ? { ...s, [subTarget]: { ...(s as any)[subTarget], ...updates } }
         : s
       );
     }
+
+    // Apply Sync if enabled
+    if (state.isSyncEnabled) {
+      profile = syncProfile(profile, state.gaps);
+    }
+
     return { profile };
   }),
 
@@ -204,3 +249,62 @@ export const useROIStore = create<ROIState>((set, get) => ({
     error: null
   })
 }));
+
+/**
+ * Sync helper to align all elements to the primary (ID: 0) element
+ */
+function syncProfile(profile: ROIProfile, gaps: ROIState['gaps']): ROIProfile {
+  const newProfile = { ...profile };
+
+  // Sync Slots
+  if (newProfile.slots && newProfile.slots.length > 0) {
+    const primary = newProfile.slots[0];
+    newProfile.slots = newProfile.slots.map((slot, index) => {
+      if (index === 0) {
+        return {
+          ...slot,
+          level: {
+            ...slot.level,
+            x_rel: primary.icon.x_rel + gaps.levelGapX,
+            y_rel: primary.icon.y_rel,
+            w: primary.level.w,
+            h: primary.level.h,
+          }
+        };
+      }
+      const x_rel = primary.icon.x_rel + (index * gaps.slotGapX);
+      return {
+        ...slot,
+        icon: { ...primary.icon, x_rel, y_rel: primary.icon.y_rel },
+        level: { ...primary.level, x_rel: x_rel + gaps.levelGapX, y_rel: primary.icon.y_rel }
+      };
+    });
+  }
+
+  // Sync Skills
+  if (newProfile.skills && newProfile.skills.length > 0) {
+    const primary = newProfile.skills[0];
+    newProfile.skills = newProfile.skills.map((skill, index) => {
+      if (index === 0) {
+        return {
+          ...skill,
+          level: {
+            ...skill.level,
+            x_rel: primary.name.x_rel + gaps.skillLevelGapX,
+            y_rel: primary.name.y_rel,
+            w: primary.level.w,
+            h: primary.level.h,
+          }
+        };
+      }
+      const y_rel = primary.name.y_rel + (index * gaps.skillGapY);
+      return {
+        ...skill,
+        name: { ...primary.name, y_rel },
+        level: { ...primary.level, x_rel: primary.name.x_rel + gaps.skillLevelGapX, y_rel }
+      };
+    });
+  }
+
+  return newProfile;
+}

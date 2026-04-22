@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Maximize2, Move, Box, Save, History, ChevronRight, ChevronLeft, Target, MousePointer2, Plus, Minus, Eye, EyeOff, Trash2, FilePlus, Settings2, AlertTriangle, Clock, Upload } from 'lucide-react'
 import InteractiveCanvas from './roi/InteractiveCanvas'
+import NumericalAdjuster from './common/NumericalAdjuster'
 import { useROIStore, type CalibrationStep, type ActiveTarget, type Rect, type RelativeRect, type Point } from '../store/roiStore'
 import { useVisionStore } from '../store/visionStore'
 import { apiClient } from '../lib/api-client'
@@ -15,42 +16,6 @@ const STEPS: { id: CalibrationStep; label: string; description: string }[] = [
   { id: 'save', label: '5. Save Profile', description: '設定に名前を付けて保存します。' },
 ];
 
-interface NumericalAdjusterProps {
-  label: string;
-  value: number;
-  onChange: (val: number) => void;
-  min?: number;
-  max?: number;
-}
-
-const NumericalAdjuster: React.FC<NumericalAdjusterProps> = ({ label, value, onChange, min = 0, max = 2000 }) => (
-  <div className="space-y-1">
-    <div className="flex justify-between items-center">
-      <span className="text-[9px] uppercase font-bold opacity-50 tracking-tighter">{label}</span>
-      <span className="text-[10px] font-mono text-mhw-accent">{value}px</span>
-    </div>
-    <div className="flex bg-white/5 border border-white/10 rounded overflow-hidden">
-      <button 
-        onClick={() => onChange(Math.max(min, value - 1))}
-        className="px-2 hover:bg-white/10 text-mhw-accent transition-colors border-r border-white/10"
-      >
-        <Minus size={12} />
-      </button>
-      <input 
-        type="number" 
-        value={value} 
-        onChange={e => onChange(parseInt(e.target.value) || 0)} 
-        className="w-full bg-transparent px-2 py-1 text-xs text-mhw-text font-mono text-center outline-none" 
-      />
-      <button 
-        onClick={() => onChange(Math.min(max, value + 1))}
-        className="px-2 hover:bg-white/10 text-mhw-accent transition-colors border-l border-white/10"
-      >
-        <Plus size={12} />
-      </button>
-    </div>
-  </div>
-);
 
 const ROICalibrator = () => {
   const { 
@@ -58,7 +23,8 @@ const ROICalibrator = () => {
     profiles, selectedProfileId, description, sourceFile, jobId, timestampMs, previewImage, isLoading, error,
     setStep, setActiveTarget, setPreviewImage, setDescription, setSourceFile,
     fetchProfiles, selectProfile, deleteProfile, prepareSource,
-    updateParentWindow, updateRelativeRect, updatePoint, resetProfile 
+    updateParentWindow, updateRelativeRect, updatePoint, resetProfile,
+    updateGaps, gaps
   } = useROIStore();
 
   const { videoMeta } = useVisionStore();
@@ -128,18 +94,22 @@ const ROICalibrator = () => {
       try {
         let params: any = {};
         if (step === 'parent') {
-          params = { x: 0, y: 0, w: profile.resolution!.width, h: profile.resolution!.height };
+          if (!profile.resolution) return;
+          params = { x: 0, y: 0, w: profile.resolution.width, h: profile.resolution.height };
         } else if (step === 'items') {
+          if (!profile.parent_window) return;
           params = { ...profile.parent_window };
         } else if (step === 'normalization') {
-          const slot1 = profile.slots![0];
+          const slot1 = profile.slots?.[0];
+          if (!profile.parent_window || !slot1?.level) return;
           params = {
-            x: profile.parent_window!.x + slot1.level!.x_rel,
-            y: profile.parent_window!.y + slot1.level!.y_rel,
-            w: slot1.level!.w,
-            h: slot1.level!.h
+            x: profile.parent_window.x + slot1.level.x_rel,
+            y: profile.parent_window.y + slot1.level.y_rel,
+            w: slot1.level.w,
+            h: slot1.level.h
           };
         } else {
+          if (!profile.parent_window) return;
           params = { ...profile.parent_window };
         }
 
@@ -165,8 +135,8 @@ const ROICalibrator = () => {
         if (step === 'parent') {
           const img = new Image();
           img.onload = () => {
-            if (canceled) return;
-            if (img.naturalWidth !== profile.resolution!.width || img.naturalHeight !== profile.resolution!.height) {
+            if (canceled || !profile.resolution) return;
+            if (img.naturalWidth !== profile.resolution.width || img.naturalHeight !== profile.resolution.height) {
               console.log(`[ROICalibrator] Syncing resolution: ${img.naturalWidth}x${img.naturalHeight}`);
               useROIStore.getState().setResolution(img.naturalWidth, img.naturalHeight);
             }
@@ -259,16 +229,16 @@ const ROICalibrator = () => {
     if (step === 'items') {
       if (activeTarget === 'rarity') return profile.rarity;
       if (activeTarget.includes('slot')) {
-        const slot = profile.slots!.find((s: any) => s.id === activeId);
+        const slot = profile.slots?.find((s: any) => s.id === activeId);
         return activeTarget === 'slot_icon' ? slot?.icon : slot?.level;
       }
       if (activeTarget.includes('skill')) {
-        const skill = profile.skills!.find((s: any) => s.id === activeId);
+        const skill = profile.skills?.find((s: any) => s.id === activeId);
         return activeTarget === 'skill_name' ? skill?.name : skill?.level;
       }
     }
     if (step === 'normalization') {
-      return activeTarget === 'bg_point' ? profile.normalization!.bg_point : profile.normalization!.frame_point;
+      return activeTarget === 'bg_point' ? profile.normalization?.bg_point : profile.normalization?.frame_point;
     }
     return null;
   };
@@ -398,55 +368,121 @@ const ROICalibrator = () => {
                 <div className="grid grid-cols-2 gap-4">
                   { 'x' in activeData ? (
                     <>
-                      <NumericalAdjuster label="X Offset" value={(activeData as Rect).x} onChange={v => updateParentWindow({ x: v })} max={1920} />
-                      <NumericalAdjuster label="Y Offset" value={(activeData as Rect).y} onChange={v => updateParentWindow({ y: v })} max={1080} />
-                      <NumericalAdjuster label="Width" value={(activeData as Rect).w} onChange={v => updateParentWindow({ w: v })} max={1920} />
-                      <NumericalAdjuster label="Height" value={(activeData as Rect).h} onChange={v => updateParentWindow({ h: v })} max={1080} />
+                      <NumericalAdjuster label="X Offset" value={(activeData as Rect).x} onChange={v => updateParentWindow({ x: v })} max={profile.resolution?.width || 1920} />
+                      <NumericalAdjuster label="Y Offset" value={(activeData as Rect).y} onChange={v => updateParentWindow({ y: v })} max={profile.resolution?.height || 1080} />
+                      <NumericalAdjuster label="Width" value={(activeData as Rect).w} onChange={v => updateParentWindow({ w: v })} max={profile.resolution?.width || 1920} />
+                      <NumericalAdjuster label="Height" value={(activeData as Rect).h} onChange={v => updateParentWindow({ h: v })} max={profile.resolution?.height || 1080} />
                     </>
                   ) : 'x_rel' in activeData && 'w' in activeData ? (
                     <>
-                      <NumericalAdjuster label="X (Rel)" value={(activeData as RelativeRect).x_rel} onChange={v => updateRelativeRect(activeTarget, activeId, { x_rel: v })} max={profile.parent_window!.w} />
-                      <NumericalAdjuster label="Y (Rel)" value={(activeData as RelativeRect).y_rel} onChange={v => updateRelativeRect(activeTarget, activeId, { y_rel: v })} max={profile.parent_window!.h} />
-                      <NumericalAdjuster label="Width" value={(activeData as RelativeRect).w} onChange={v => updateRelativeRect(activeTarget, activeId, { w: v })} max={profile.parent_window!.w} />
-                      <NumericalAdjuster label="Height" value={(activeData as RelativeRect).h} onChange={v => updateRelativeRect(activeTarget, activeId, { h: v })} max={profile.parent_window!.h} />
+                      <NumericalAdjuster label="X (Rel)" value={(activeData as RelativeRect).x_rel} onChange={v => updateRelativeRect(activeTarget, activeId, { x_rel: v })} max={profile.parent_window?.w || 1920} />
+                      <NumericalAdjuster label="Y (Rel)" value={(activeData as RelativeRect).y_rel} onChange={v => updateRelativeRect(activeTarget, activeId, { y_rel: v })} max={profile.parent_window?.h || 1080} />
+                      <NumericalAdjuster label="Width" value={(activeData as RelativeRect).w} onChange={v => updateRelativeRect(activeTarget, activeId, { w: v })} max={profile.parent_window?.w || 1920} />
+                      <NumericalAdjuster label="Height" value={(activeData as RelativeRect).h} onChange={v => updateRelativeRect(activeTarget, activeId, { h: v })} max={profile.parent_window?.h || 1080} />
                     </>
                   ) : 'x_rel' in activeData ? (
                     <>
-                      <NumericalAdjuster label="X (Rel)" value={(activeData as Point).x_rel} onChange={v => updatePoint(activeTarget as any, { x_rel: v })} max={profile.parent_window!.w} />
-                      <NumericalAdjuster label="Y (Rel)" value={(activeData as Point).y_rel} onChange={v => updatePoint(activeTarget as any, { y_rel: v })} max={profile.parent_window!.h} />
+                      <NumericalAdjuster label="X (Rel)" value={(activeData as Point).x_rel} onChange={v => updatePoint(activeTarget as any, { x_rel: v })} max={profile.parent_window?.w || 1920} />
+                      <NumericalAdjuster label="Y (Rel)" value={(activeData as Point).y_rel} onChange={v => updatePoint(activeTarget as any, { y_rel: v })} max={profile.parent_window?.h || 1080} />
                     </>
                   ) : null}
                 </div>
+
+                {activeTarget && ['slot_icon', 'slot_level', 'skill_name', 'skill_level'].includes(activeTarget) && (() => {
+                  const targetMap: Record<string, keyof typeof gaps> = {
+                    slot_icon: 'slotGapX',
+                    slot_level: 'levelGapX',
+                    skill_name: 'skillGapY',
+                    skill_level: 'skillLevelGapX'
+                  };
+                  const gapKey = targetMap[activeTarget];
+                  const gapValue = gaps[gapKey];
+
+                  return (
+                    <div className="p-4 bg-mhw-accent/5 border border-mhw-accent/20 rounded-lg space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-mhw-accent uppercase tracking-widest">
+                          <Settings2 size={12} /> Gap Adjustment
+                        </div>
+                        <span className="text-[10px] font-mono text-mhw-accent">{gapValue}px</span>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <input
+                          type="range"
+                          min="-50"
+                          max="150"
+                          value={gapValue}
+                          onChange={(e) => updateGaps({ [gapKey]: parseInt(e.target.value) })}
+                          className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-mhw-accent"
+                        />
+                        
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => updateGaps({ [gapKey]: gapValue - 1 })}
+                            className="flex-1 py-1.5 bg-mhw-accent/10 hover:bg-mhw-accent/20 border border-mhw-accent/30 rounded text-[9px] font-bold text-mhw-accent uppercase transition-all"
+                          >
+                            -1px
+                          </button>
+                          <input
+                            type="number"
+                            value={gapValue}
+                            onChange={(e) => updateGaps({ [gapKey]: parseInt(e.target.value) || 0 })}
+                            className="w-16 bg-mhw-bg/50 border border-mhw-accent/30 rounded px-2 py-1 text-center text-[10px] text-mhw-text font-mono focus:outline-none focus:border-mhw-accent"
+                          />
+                          <button
+                            onClick={() => updateGaps({ [gapKey]: gapValue + 1 })}
+                            className="flex-1 py-1.5 bg-mhw-accent/10 hover:bg-mhw-accent/20 border border-mhw-accent/30 rounded text-[9px] font-bold text-mhw-accent uppercase transition-all"
+                          >
+                            +1px
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
             {step === 'items' && (
-              <div className="space-y-3">
-                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Select Target</span>
-                <div className="grid grid-cols-1 gap-1.5 font-hud">
-                  <button onClick={() => setActiveTarget('rarity')} className={`text-left px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${activeTarget === 'rarity' ? 'bg-mhw-accent text-mhw-bg' : 'bg-white/5 hover:bg-white/10'}`}>
-                    Rarity
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                   <Box size={14} className="text-white/20" />
+                   <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">ROI Categories</span>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-2 font-hud">
+                  <button 
+                    onClick={() => setActiveTarget('rarity')} 
+                    className={`text-left px-4 py-3 rounded border transition-all ${
+                      activeTarget === 'rarity' 
+                        ? 'bg-mhw-accent border-mhw-accent text-mhw-bg shadow-[0_0_15px_rgba(202,192,128,0.3)]' 
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="text-[10px] font-black uppercase tracking-widest">Rarity Area</div>
                   </button>
-                  {[0, 1, 2].map(i => (
-                    <div key={i} className="flex gap-1.5">
-                      <button onClick={() => setActiveTarget('slot_icon', i)} className={`flex-1 px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${activeTarget === 'slot_icon' && activeId === i ? 'bg-mhw-accent text-mhw-bg' : 'bg-white/5 hover:bg-white/10'}`}>
-                        Slot {i+1} Icon
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'slot_icon' as ActiveTarget, label: 'Slot Icons' },
+                      { id: 'slot_level' as ActiveTarget, label: 'Slot Levels' },
+                      { id: 'skill_name' as ActiveTarget, label: 'Skill Names' },
+                      { id: 'skill_level' as ActiveTarget, label: 'Skill Levels' },
+                    ].map((t) => (
+                      <button 
+                        key={t.id}
+                        onClick={() => setActiveTarget(t.id, 0)} 
+                        className={`px-3 py-3 rounded border text-center transition-all ${
+                          activeTarget === t.id 
+                            ? 'bg-mhw-accent border-mhw-accent text-mhw-bg shadow-[0_0_10px_rgba(202,192,128,0.2)]' 
+                            : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="text-[9px] font-black uppercase tracking-wider leading-tight">{t.label}</div>
                       </button>
-                      <button onClick={() => setActiveTarget('slot_level', i)} className={`flex-1 px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${activeTarget === 'slot_level' && activeId === i ? 'bg-mhw-accent text-mhw-bg' : 'bg-white/5 hover:bg-white/10'}`}>
-                        Slot {i+1} Lvl
-                      </button>
-                    </div>
-                  ))}
-                  {[0, 1, 2].map(i => (
-                    <div key={i} className="flex gap-1.5">
-                      <button onClick={() => setActiveTarget('skill_name', i)} className={`flex-1 px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${activeTarget === 'skill_name' && activeId === i ? 'bg-mhw-accent text-mhw-bg' : 'bg-white/5 hover:bg-white/10'}`}>
-                        Skill {i+1} Name
-                      </button>
-                      <button onClick={() => setActiveTarget('skill_level', i)} className={`flex-1 px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${activeTarget === 'skill_level' && activeId === i ? 'bg-mhw-accent text-mhw-bg' : 'bg-white/5 hover:bg-white/10'}`}>
-                        Skill {i+1} Lvl
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -489,13 +525,13 @@ const ROICalibrator = () => {
                   </div>
                   
                   <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    {profiles.length === 0 && !isLoading && (
+                    {Array.isArray(profiles) && profiles.length === 0 && !isLoading && (
                       <div className="p-8 text-center border border-dashed border-white/10 rounded">
                         <p className="text-[10px] opacity-30">保存済みのプロファイルはありません</p>
                       </div>
                     )}
                     
-                    {profiles.map(p => (
+                    {Array.isArray(profiles) && profiles.map(p => (
                       <div 
                         key={p.profile_id}
                         className={`group relative p-3 rounded border transition-all cursor-pointer ${
@@ -656,7 +692,7 @@ const ROICalibrator = () => {
                   <div className="grid grid-cols-2 gap-2 text-[10px]">
                     <div className="flex items-center gap-2">
                        <Maximize2 size={10} className="text-mhw-accent" />
-                       <span className="font-mono">{profile.resolution!.width}x{profile.resolution!.height}</span>
+                       <span className="font-mono">{profile.resolution?.width || 0}x{profile.resolution?.height || 0}</span>
                     </div>
                     <div className="flex items-center gap-2">
                        <Clock size={10} className="text-mhw-accent" />

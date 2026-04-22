@@ -237,7 +237,7 @@
 
 ### REQ-017: 解析ワークフローのUX改善（プロファイル記憶とボタン活性化の修正）
 - **Type**: refinement
-- **Status**: new
+- **Status**: ready
 - **Current step**: none
 - **Priority**: P1
 - **Surface**: 動画アップロード直後のプロファイル再選択の手間と、ボタンが活性化しない不具合の解消。
@@ -294,23 +294,22 @@
 
 ### REQ-020: 等幅・等間隔同期 (Equal spacing sync)
 - **Type**: feature
-- **Status**: new
+- **Status**: done (2026-04-22)
 - **Current step**: none
+
 - **Priority**: P1
 - **Surface**: スロット1の移動に連動して、他スロットの相対位置を自動更新する。
 - **Root Cause**: Interaction Design - 似た形状が等間隔で並んでいるUIに対し、1つずつ個別に位置合わせをするのは手間であり、精度のバラつきも生じやすいため。
 - **Requirement**: `ROICalibrator` において、スロット1の位置を変更した際に2・3番目のスロットを一定間隔（Gap）を保って追従させる連動機能を実装する。
 - **Acceptance criteria**:
-  - スロット1の `x`, `y` を変更した際、等間隔同期モードがONであればスロット2, 3の座標が自動的に計算・更新されること。
-  - スロット間の「隙間（Gap）」をスライダーや数値入力で調整可能であること。
-  - 連動のON/OFFをユーザーが任意に切り替えられること。
+  - 3スロット（または3スキル）間の「隙間（Gap）」をスライダーや数値入力で調整可能であること。
 - **Design doc**: none
 
 ---
 
 ### REQ-021: ズームプレビュー (Zoom Preview)
 - **Type**: feature
-- **Status**: new
+- **Status**: ready
 - **Current step**: none
 - **Priority**: P1
 - **Surface**: 操作対象ROIを拡大表示する「ルーペ」機能。
@@ -352,4 +351,21 @@
   - 保存実行前に、全3スロット（または全項目）の最新クロップ画像が一覧表示されること。
   - ユーザーが一覧を確認し、「確定（保存）」をクリックした時のみAPIリクエストが発行されること。
   - 確認画面から調整ステップに戻れること。
+- **Design doc**: none
+
+---
+
+### REQ-024: VitestおよびReact Testing Libraryによるテスト基盤の構築
+- **Type**: infrastructure
+- **Status**: done (2026-04-22)
+- **Current step**: none
+- **Priority**: P1
+- **Surface**: 「Vitestを導入して、TDDや自動テストができるようにしたい。UIコンポーネントのテストも行いたい。」
+- **Root Cause**: Infrastructure - 現在のViteプロジェクトにおいて、テストランナーおよびUIテストライブラリがセットアップされておらず、品質担保の自動化やTDD（テスト駆動開発）が不可能な状態である。
+- **Requirement**: Vitest, React Testing Library, JSDOM 等を導入し、既存のストアテストの実行を可能にするとともに、コンポーネントテストの基盤を構築する。
+- **Acceptance criteria**:
+  - `npm test` コマンドで既存の `roiStore.test.ts` が正常に動作し、パスすること。
+  - React Testing Library を用いた基本的なコンポーネントテストが実行可能であること。
+  - `vite.config.ts` にテスト設定が適切に統合されていること。
+  - `dev-task` での TDD 実装が可能なレベルまで環境が整備されていること。
 - **Design doc**: none
