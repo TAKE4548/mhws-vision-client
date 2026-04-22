@@ -48,10 +48,10 @@ interface ROIState {
   // Sync settings
   isSyncEnabled: boolean;
   gaps: {
-    slotGapX: number;
-    skillGapY: number;
-    levelGapX: number;
-    skillLevelGapX: number;
+    slotIconGapX: number;
+    slotLevelGapX: number;
+    skillNameGapY: number;
+    skillLevelGapY: number;
   };
   
   setStep: (step: CalibrationStep) => void;
@@ -131,10 +131,10 @@ export const useROIStore = create<ROIState>((set, get) => ({
 
   isSyncEnabled: true,
   gaps: {
-    slotGapX: 50,
-    skillGapY: 50,
-    levelGapX: 50,
-    skillLevelGapX: 210,
+    slotIconGapX: 50,
+    slotLevelGapX: 50,
+    skillNameGapY: 50,
+    skillLevelGapY: 50,
   },
 
   setStep: (step) => set({ step }),
@@ -286,24 +286,19 @@ function syncProfile(profile: ROIProfile, gaps: ROIState['gaps']): ROIProfile {
     const primary = newProfile.slots[0];
     if (primary.icon && primary.level) {
       newProfile.slots = newProfile.slots.map((slot, index) => {
-        if (index === 0) {
-          return {
-            ...slot,
-            level: {
-              ...slot.level,
-              x_rel: primary.icon.x_rel + gaps.levelGapX,
-              y_rel: primary.icon.y_rel,
-              w: primary.level.w,
-              h: primary.level.h,
-            }
-          };
-        }
+        if (index === 0) return slot;
         if (!slot.icon || !slot.level) return slot;
-        const x_rel = primary.icon.x_rel + (index * gaps.slotGapX);
+
+        // Slot Icons Group: Sync to primary icon with slotIconGapX
+        const iconX = primary.icon.x_rel + (index * gaps.slotIconGapX);
+        
+        // Slot Levels Group: Sync to primary level with slotLevelGapX
+        const levelX = primary.level.x_rel + (index * gaps.slotLevelGapX);
+
         return {
           ...slot,
-          icon: { ...primary.icon, x_rel, y_rel: primary.icon.y_rel },
-          level: { ...primary.level, x_rel: x_rel + gaps.levelGapX, y_rel: primary.icon.y_rel }
+          icon: { ...primary.icon, x_rel: iconX, y_rel: primary.icon.y_rel },
+          level: { ...primary.level, x_rel: levelX, y_rel: primary.level.y_rel }
         };
       });
     }
@@ -314,24 +309,19 @@ function syncProfile(profile: ROIProfile, gaps: ROIState['gaps']): ROIProfile {
     const primary = newProfile.skills[0];
     if (primary.name && primary.level) {
       newProfile.skills = newProfile.skills.map((skill, index) => {
-        if (index === 0) {
-          return {
-            ...skill,
-            level: {
-              ...skill.level,
-              x_rel: primary.name.x_rel + gaps.skillLevelGapX,
-              y_rel: primary.name.y_rel,
-              w: primary.level.w,
-              h: primary.level.h,
-            }
-          };
-        }
+        if (index === 0) return skill;
         if (!skill.name || !skill.level) return skill;
-        const y_rel = primary.name.y_rel + (index * gaps.skillGapY);
+
+        // Skill Names Group: Sync to primary name with skillNameGapY
+        const nameY = primary.name.y_rel + (index * gaps.skillNameGapY);
+
+        // Skill Levels Group: Sync to primary level with skillLevelGapY
+        const levelY = primary.level.y_rel + (index * gaps.skillLevelGapY);
+
         return {
           ...skill,
-          name: { ...primary.name, y_rel },
-          level: { ...primary.level, x_rel: primary.name.x_rel + gaps.skillLevelGapX, y_rel }
+          name: { ...primary.name, x_rel: primary.name.x_rel, y_rel: nameY },
+          level: { ...primary.level, x_rel: primary.level.x_rel, y_rel: levelY }
         };
       });
     }

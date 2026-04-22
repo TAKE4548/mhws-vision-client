@@ -397,10 +397,10 @@ const ROICalibrator = () => {
 
                 {activeTarget && ['slot_icon', 'slot_level', 'skill_name', 'skill_level'].includes(activeTarget) && (() => {
                   const targetMap: Record<string, keyof typeof gaps> = {
-                    slot_icon: 'slotGapX',
-                    slot_level: 'levelGapX',
-                    skill_name: 'skillGapY',
-                    skill_level: 'skillLevelGapX'
+                    slot_icon: 'slotIconGapX',
+                    slot_level: 'slotLevelGapX',
+                    skill_name: 'skillNameGapY',
+                    skill_level: 'skillLevelGapY'
                   };
                   const gapKey = targetMap[activeTarget];
                   const gapValue = gaps[gapKey];

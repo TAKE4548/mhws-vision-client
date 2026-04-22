@@ -55,7 +55,11 @@
   - `0. Setup`: プロファイル選択または新規作成。既存プロファイル選択時は `2. Window Area` へスキップ。
   - `1. Source Frame`: 動画から基準フレームを選択。新規作成時のみ必須。
   - `2. Window Area`: 護石情報の全体表示範囲を設定。
-  - `3. Item ROIs`: レア度、スロット、スキルの各項目枠を微調整。
+  - `3. Item ROIs`: レア度、スロット、スキルの各項目枠を微調整。以下の4つの独立した同期グループ（Gap管理）を含む。
+    - Slot Icons (X-Gap)
+    - Slot Level Borders (X-Gap)
+    - Skill Names (Y-Gap)
+    - Skill Level Borders (Y-Gap)
   - `4. Normalization`: スキャン精度のための基準点（背景・枠）を指定。
   - `5. Save Profile`: プロファイル名を入力して保存。既存の場合は上書き (PUT)。
 - **数値調整コンポーネント**  

@@ -51,13 +51,12 @@ graph TD
   - **抑制対象**: ROI枠のドラッグや `NumericalAdjuster` による数値操作中には、UIのレスポンスを優先するため API フェッチを行いません。
   - **アスペクト比同期**: 画像読込完了時（`onLoad`）に実際の解像度を検知し、`actualRatio` を更新します。
 
-- **Items選択ステップ (Step 2)**  
-  - ROIアイテムのドラッグ＆ドロップで領域を設定 → `activeTarget`の座標が更新。
+- **Item ROIs ステップ (Step 3)**
+  - ROIアイテムを4つの独立した同期グループに分類し、各グループ内で連動（等間隔同期）を実現。
+    - **独立グループ**: `Slot Icons`, `Slot Level Borders`, `Skill Names`, `Skill Level Borders`。
+    - **連動ロジック**: 各グループの1つ目の要素（Primary）を操作すると、同一グループ内の他の要素が現在の Gap を維持して追従する。
+    - **Gap 調整**: カテゴリごとに独立した Gap 値を保持し、`NumericalAdjuster` を通じて動的に間隔を変更可能。
   - `parent_window` のアスペクト比に基づきキャンバスが形状変化。
-
-- **正規化ステップ (Step 3)**  
-  - ROI領域のスケーリング/回転調整 → `activeTarget`の変換パラメータが更新。
-  - 特定のROIスロットにズームし、そのアスペクト比にキャンバスが追従。
 
 - **保存ステップ (Step 4)**
   - 設定にプロファイル名を付けて保存。
