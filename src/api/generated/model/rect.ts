@@ -7,8 +7,24 @@
  */
 
 export interface Rect {
+  /**
+   * @minimum 0
+   * @maximum 2160
+   */
   h: number;
+  /**
+   * @minimum 0
+   * @maximum 3840
+   */
   w: number;
+  /**
+   * @minimum 0
+   * @maximum 3840
+   */
   x: number;
+  /**
+   * @minimum 0
+   * @maximum 2160
+   */
   y: number;
 }

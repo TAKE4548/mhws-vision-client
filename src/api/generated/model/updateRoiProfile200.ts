@@ -6,8 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ROIProfile } from './rOIProfile';
+import type { UpdateRoiProfile200Status } from './updateRoiProfile200Status';
 
 export type UpdateRoiProfile200 = {
   data?: ROIProfile;
-  status?: string;
+  status?: UpdateRoiProfile200Status;
 };

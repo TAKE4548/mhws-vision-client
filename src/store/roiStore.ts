@@ -97,11 +97,27 @@ const DEFAULT_PROFILE: ROIProfile = {
   }
 };
 
+/**
+ * Ensures a profile object has all required nested structures by merging with defaults
+ */
+function ensureProfileStructure(p: Partial<ROIProfile>): ROIProfile {
+  return {
+    ...DEFAULT_PROFILE,
+    ...p,
+    resolution: p.resolution || { ...DEFAULT_PROFILE.resolution },
+    parent_window: p.parent_window || { ...DEFAULT_PROFILE.parent_window },
+    rarity: p.rarity || { ...DEFAULT_PROFILE.rarity },
+    slots: Array.isArray(p.slots) && p.slots.length > 0 ? p.slots : [ ...DEFAULT_PROFILE.slots ],
+    skills: Array.isArray(p.skills) && p.skills.length > 0 ? p.skills : [ ...DEFAULT_PROFILE.skills ],
+    normalization: p.normalization || { ...DEFAULT_PROFILE.normalization },
+  };
+}
+
 export const useROIStore = create<ROIState>((set, get) => ({
   step: 'setup',
   activeTarget: 'parent',
   activeId: 0,
-  profile: { ...DEFAULT_PROFILE },
+  profile: ensureProfileStructure({}),
   
   profiles: [],
   selectedProfileId: null,
@@ -147,29 +163,32 @@ export const useROIStore = create<ROIState>((set, get) => ({
     profile: syncProfile(state.profile, state.gaps)
   })),
 
-  updateParentWindow: (updates) => set(state => ({
-    profile: {
-      ...state.profile,
-      parent_window: { ...state.profile.parent_window!, ...updates }
-    }
-  })),
+  updateParentWindow: (updates) => set(state => {
+    if (!state.profile.parent_window) return {};
+    return {
+      profile: {
+        ...state.profile,
+        parent_window: { ...state.profile.parent_window, ...updates }
+      }
+    };
+  }),
 
   updateRelativeRect: (target, id, updates) => set(state => {
     let profile = { ...state.profile };
     
     // Apply basic update
-    if (target === 'rarity') {
-      profile.rarity = { ...profile.rarity!, ...updates };
-    } else if (target.includes('slot')) {
-      const subTarget = target.split('_')[1]; // icon or level
-      profile.slots = profile.slots!.map((s: SlotROI) => s.id === id 
-        ? { ...s, [subTarget]: { ...(s as any)[subTarget], ...updates } }
+    if (target === 'rarity' && profile.rarity) {
+      profile.rarity = { ...profile.rarity, ...updates };
+    } else if (target.includes('slot') && profile.slots) {
+      const subTarget = target.split('_')[1] as 'icon' | 'level';
+      profile.slots = profile.slots.map((s: SlotROI) => s.id === id 
+        ? { ...s, [subTarget]: { ...s[subTarget], ...updates } }
         : s
       );
-    } else if (target.includes('skill')) {
-      const subTarget = target.split('_')[1]; // name or level
-      profile.skills = profile.skills!.map((s: SkillROI) => s.id === id 
-        ? { ...s, [subTarget]: { ...(s as any)[subTarget], ...updates } }
+    } else if (target.includes('skill') && profile.skills) {
+      const subTarget = target.split('_')[1] as 'name' | 'level';
+      profile.skills = profile.skills.map((s: SkillROI) => s.id === id 
+        ? { ...s, [subTarget]: { ...s[subTarget], ...updates } }
         : s
       );
     }
@@ -182,21 +201,26 @@ export const useROIStore = create<ROIState>((set, get) => ({
     return { profile };
   }),
 
-  updatePoint: (target, updates) => set(state => ({
-    profile: {
-      ...state.profile,
-      normalization: {
-        ...state.profile.normalization!,
-        [target]: { ...(state.profile.normalization as any)[target], ...updates }
+  updatePoint: (target, updates) => set(state => {
+    if (!state.profile.normalization) return {};
+    return {
+      profile: {
+        ...state.profile,
+        normalization: {
+          ...state.profile.normalization,
+          [target]: { ...state.profile.normalization[target], ...updates }
+        }
       }
-    }
-  })),
+    };
+  }),
 
   fetchProfiles: async () => {
     set({ isLoading: true });
     try {
       const res = await listRoiProfiles();
-      set({ profiles: res.data as ROIProfile[], error: null });
+      // Interceptor might have already unwrapped 'data'
+      const data = Array.isArray(res) ? res : (res as any)?.data;
+      set({ profiles: Array.isArray(data) ? data : [], error: null });
     } catch (err) {
       set({ error: 'Failed to fetch profiles' });
     } finally {
@@ -205,11 +229,11 @@ export const useROIStore = create<ROIState>((set, get) => ({
   },
 
   selectProfile: (id) => {
-    const selected = get().profiles.find(p => p.profile_id === id);
+    const selected = get().profiles.find(p => p?.profile_id === id);
     if (selected) {
       set({ 
         selectedProfileId: id, 
-        profile: { ...selected },
+        profile: ensureProfileStructure(selected),
         description: selected.description || '' 
       });
     }
@@ -231,7 +255,8 @@ export const useROIStore = create<ROIState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await prepareCalibration({ file }, { timestamp_ms: timestampMs });
-      set({ jobId: (res.data as any).job_id, timestampMs });
+      const data = (res as any)?.data || res;
+      set({ jobId: data?.job_id, timestampMs });
     } catch (err) {
       set({ error: 'Failed to prepare video source' });
       throw err;
@@ -259,51 +284,57 @@ function syncProfile(profile: ROIProfile, gaps: ROIState['gaps']): ROIProfile {
   // Sync Slots
   if (newProfile.slots && newProfile.slots.length > 0) {
     const primary = newProfile.slots[0];
-    newProfile.slots = newProfile.slots.map((slot, index) => {
-      if (index === 0) {
+    if (primary.icon && primary.level) {
+      newProfile.slots = newProfile.slots.map((slot, index) => {
+        if (index === 0) {
+          return {
+            ...slot,
+            level: {
+              ...slot.level,
+              x_rel: primary.icon.x_rel + gaps.levelGapX,
+              y_rel: primary.icon.y_rel,
+              w: primary.level.w,
+              h: primary.level.h,
+            }
+          };
+        }
+        if (!slot.icon || !slot.level) return slot;
+        const x_rel = primary.icon.x_rel + (index * gaps.slotGapX);
         return {
           ...slot,
-          level: {
-            ...slot.level,
-            x_rel: primary.icon.x_rel + gaps.levelGapX,
-            y_rel: primary.icon.y_rel,
-            w: primary.level.w,
-            h: primary.level.h,
-          }
+          icon: { ...primary.icon, x_rel, y_rel: primary.icon.y_rel },
+          level: { ...primary.level, x_rel: x_rel + gaps.levelGapX, y_rel: primary.icon.y_rel }
         };
-      }
-      const x_rel = primary.icon.x_rel + (index * gaps.slotGapX);
-      return {
-        ...slot,
-        icon: { ...primary.icon, x_rel, y_rel: primary.icon.y_rel },
-        level: { ...primary.level, x_rel: x_rel + gaps.levelGapX, y_rel: primary.icon.y_rel }
-      };
-    });
+      });
+    }
   }
 
   // Sync Skills
   if (newProfile.skills && newProfile.skills.length > 0) {
     const primary = newProfile.skills[0];
-    newProfile.skills = newProfile.skills.map((skill, index) => {
-      if (index === 0) {
+    if (primary.name && primary.level) {
+      newProfile.skills = newProfile.skills.map((skill, index) => {
+        if (index === 0) {
+          return {
+            ...skill,
+            level: {
+              ...skill.level,
+              x_rel: primary.name.x_rel + gaps.skillLevelGapX,
+              y_rel: primary.name.y_rel,
+              w: primary.level.w,
+              h: primary.level.h,
+            }
+          };
+        }
+        if (!skill.name || !skill.level) return skill;
+        const y_rel = primary.name.y_rel + (index * gaps.skillGapY);
         return {
           ...skill,
-          level: {
-            ...skill.level,
-            x_rel: primary.name.x_rel + gaps.skillLevelGapX,
-            y_rel: primary.name.y_rel,
-            w: primary.level.w,
-            h: primary.level.h,
-          }
+          name: { ...primary.name, y_rel },
+          level: { ...primary.level, x_rel: primary.name.x_rel + gaps.skillLevelGapX, y_rel }
         };
-      }
-      const y_rel = primary.name.y_rel + (index * gaps.skillGapY);
-      return {
-        ...skill,
-        name: { ...primary.name, y_rel },
-        level: { ...primary.level, x_rel: primary.name.x_rel + gaps.skillLevelGapX, y_rel }
-      };
-    });
+      });
+    }
   }
 
   return newProfile;

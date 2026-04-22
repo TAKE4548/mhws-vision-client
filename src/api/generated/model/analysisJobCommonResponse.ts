@@ -6,10 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AnalysisJobResponse } from './analysisJobResponse';
+import type { AnalysisJobCommonResponseStatus } from './analysisJobCommonResponseStatus';
 
 export interface AnalysisJobCommonResponse {
   data?: AnalysisJobResponse;
   /** @nullable */
   message?: string | null;
-  status: string;
+  status: AnalysisJobCommonResponseStatus;
 }

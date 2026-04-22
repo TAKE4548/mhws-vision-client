@@ -7,6 +7,14 @@
  */
 
 export interface Point {
+  /**
+   * @minimum -100
+   * @maximum 3840
+   */
   x_rel: number;
+  /**
+   * @minimum -100
+   * @maximum 2160
+   */
   y_rel: number;
 }

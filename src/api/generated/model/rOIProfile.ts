@@ -35,6 +35,10 @@ export interface ROIProfile {
    * @maxItems 3
    */
   slots?: SlotROI[];
-  /** Optional. Used during save to capture a new reference image. */
+  /**
+   * Optional. Used during save to capture a new reference image.
+   * @minimum 0
+   * @maximum 8640000000000000
+   */
   timestamp_ms?: number;
 }

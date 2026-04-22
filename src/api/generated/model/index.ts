@@ -8,9 +8,11 @@
 
 export * from './analysisErrorEventData';
 export * from './analysisJobCommonResponse';
+export * from './analysisJobCommonResponseStatus';
 export * from './analysisJobResponse';
 export * from './analysisJobStatus';
 export * from './cancelAnalysis200';
+export * from './cancelAnalysis200Status';
 export * from './captureExtractedEventData';
 export * from './confidenceValueInt';
 export * from './confidenceValueListInt';
@@ -43,4 +45,5 @@ export * from './talismanListCommonResponse';
 export * from './talismanOut';
 export * from './talismanUpdate';
 export * from './updateRoiProfile200';
+export * from './updateRoiProfile200Status';
 export * from './validationStatus';

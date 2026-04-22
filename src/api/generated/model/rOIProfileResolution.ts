@@ -7,6 +7,14 @@
  */
 
 export type ROIProfileResolution = {
-  height?: number;
-  width?: number;
+  /**
+   * @minimum 0
+   * @maximum 2160
+   */
+  height: number;
+  /**
+   * @minimum 0
+   * @maximum 3840
+   */
+  width: number;
 };

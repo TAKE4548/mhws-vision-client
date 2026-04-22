@@ -7,8 +7,24 @@
  */
 
 export interface RelativeRect {
+  /**
+   * @minimum 0
+   * @maximum 2160
+   */
   h: number;
+  /**
+   * @minimum 0
+   * @maximum 3840
+   */
   w: number;
+  /**
+   * @minimum -100
+   * @maximum 3840
+   */
   x_rel: number;
+  /**
+   * @minimum -100
+   * @maximum 2160
+   */
   y_rel: number;
 }

@@ -48,7 +48,7 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
   const calculatedRatio = useMemo(() => {
     if (step === 'parent' && profile.resolution) return `${profile.resolution.width} / ${profile.resolution.height}`;
     if ((step === 'items' || step === 'save') && profile.parent_window) return `${profile.parent_window.w} / ${profile.parent_window.h}`;
-    if (step === 'normalization' && profile.slots) {
+    if (step === 'normalization' && profile.slots && profile.slots.length > 0) {
       const slot = profile.slots[0];
       if (slot?.level) return `${slot.level.w} / ${slot.level.h}`;
     }
@@ -182,10 +182,10 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
       const res = profile.resolution;
       if (!res.width || !res.height) return [];
       return [{
-        x: (r.x / res.width) * 100,
-        y: (r.y / res.height) * 100,
-        w: (r.w / res.width) * 100,
-        h: (r.h / res.height) * 100,
+        x: ((r.x || 0) / (res.width || 1)) * 100,
+        y: ((r.y || 0) / (res.height || 1)) * 100,
+        w: ((r.w || 0) / (res.width || 1)) * 100,
+        h: ((r.h || 0) / (res.height || 1)) * 100,
         isActive: true,
         id: 'parent'
       }];
@@ -199,10 +199,10 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
         const r = profile.rarity;
         const pw = profile.parent_window;
         results.push({
-          x: (r.x_rel / pw.w) * 100,
-          y: (r.y_rel / pw.h) * 100,
-          w: (r.w / pw.w) * 100,
-          h: (r.h / pw.h) * 100,
+          x: ((r.x_rel || 0) / (pw.w || 1)) * 100,
+          y: ((r.y_rel || 0) / (pw.h || 1)) * 100,
+          w: ((r.w || 0) / (pw.w || 1)) * 100,
+          h: ((r.h || 0) / (pw.h || 1)) * 100,
           isActive: true,
           target: 'rarity',
           id: 0
@@ -225,10 +225,10 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
 
           if (r) {
             results.push({
-              x: (r.x_rel / pw.w) * 100,
-              y: (r.y_rel / pw.h) * 100,
-              w: (r.w / pw.w) * 100,
-              h: (r.h / pw.h) * 100,
+              x: ((r.x_rel || 0) / (pw.w || 1)) * 100,
+              y: ((r.y_rel || 0) / (pw.h || 1)) * 100,
+              w: ((r.w || 0) / (pw.w || 1)) * 100,
+              h: ((r.h || 0) / (pw.h || 1)) * 100,
               isActive: i === activeId,
               target: activeTarget,
               id: i
@@ -239,13 +239,13 @@ const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ backgroundImage, 
       return results;
     }
 
-    if (step === 'normalization' && profile.normalization && profile.slots) {
+    if (step === 'normalization' && profile.normalization && profile.slots && profile.slots.length > 0) {
       const r = activeTarget === 'bg_point' ? profile.normalization.bg_point : profile.normalization.frame_point;
       const slot1 = profile.slots[0];
       if (r && slot1?.level) {
         return [{
-          x: ((r.x_rel - slot1.level.x_rel) / slot1.level.w) * 100,
-          y: ((r.y_rel - slot1.level.y_rel) / slot1.level.h) * 100,
+          x: (((r.x_rel || 0) - (slot1.level.x_rel || 0)) / (slot1.level.w || 1)) * 100,
+          y: (((r.y_rel || 0) - (slot1.level.y_rel || 0)) / (slot1.level.h || 1)) * 100,
           w: 0, h: 0,
           isPoint: true,
           isActive: true

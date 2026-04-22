@@ -5,8 +5,9 @@
  * Backend API and Vision inference engine for MHWs Talisman Vision Module.
  * OpenAPI spec version: 0.1.0
  */
+import type { CancelAnalysis200Status } from './cancelAnalysis200Status';
 
 export type CancelAnalysis200 = {
   message?: string;
-  status?: string;
+  status?: CancelAnalysis200Status;
 };

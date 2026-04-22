@@ -49,8 +49,8 @@ const ROICalibrator = () => {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/webp');
         setPreviewImage(dataUrl);
-        const currentRes = useROIStore.getState().profile.resolution!;
-        if (canvas.width !== currentRes.width || canvas.height !== currentRes.height) {
+        const currentRes = profile.resolution;
+        if (currentRes && (canvas.width !== currentRes.width || canvas.height !== currentRes.height)) {
           useROIStore.getState().setResolution(canvas.width, canvas.height);
         }
       }
@@ -94,10 +94,10 @@ const ROICalibrator = () => {
       try {
         let params: any = {};
         if (step === 'parent') {
-          if (!profile.resolution) return;
+          if (!profile.resolution || profile.resolution.width === undefined) return;
           params = { x: 0, y: 0, w: profile.resolution.width, h: profile.resolution.height };
         } else if (step === 'items') {
-          if (!profile.parent_window) return;
+          if (!profile.parent_window || profile.parent_window.w === undefined) return;
           params = { ...profile.parent_window };
         } else if (step === 'normalization') {
           const slot1 = profile.slots?.[0];
@@ -521,7 +521,7 @@ const ROICalibrator = () => {
                     <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
                       <History size={12} /> Existing Profiles
                     </span>
-                    <span className="text-[9px] px-2 py-0.5 bg-white/5 rounded text-white/40">{profiles.length} total</span>
+                    <span className="text-[9px] px-2 py-0.5 bg-white/5 rounded text-white/40">{profiles?.length || 0} total</span>
                   </div>
                   
                   <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -539,14 +539,14 @@ const ROICalibrator = () => {
                             ? 'bg-mhw-accent/10 border-mhw-accent/50' 
                             : 'bg-white/5 border-white/10 hover:border-white/20'
                         }`}
-                        onClick={() => selectProfile(p.profile_id!)}
+                        onClick={() => p.profile_id && selectProfile(p.profile_id)}
                       >
                         <div className="flex justify-between items-start mb-1">
                           <div className="text-xs font-bold text-mhw-text truncate pr-8">{p.name}</div>
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              if(confirm('このプロファイルを削除しますか？')) deleteProfile(p.profile_id!);
+                              if(p.profile_id && confirm('このプロファイルを削除しますか？')) deleteProfile(p.profile_id);
                             }}
                             className="p-1 text-white/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                           >

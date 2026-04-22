@@ -201,7 +201,7 @@
 - **Priority**: P0
 - **Surface**: 「メインの解析ワークフローを実現するための、フロント側機能を構築したい。同期はREQ-013とおなじ」
 - **Root Cause**: **Information Design / Interaction** - 従来の単純なポーリングやバッチ的な一覧表示では、長時間かかるビデオ解析においてユーザーを待機させてしまう。最新仕様（SSEによる進捗通知）に基づき、「見つかった側からカードを表示・編集できる」というプログレッシブなUXが欠落しているため。
-- **Requirement**: `02_analysis.md` および `02_analysis_api.md` の仕様に準拠し、SSEによるリアルタイム通知を受け取り、解析完了を待たずに各護石データを順次表示・修正・保存できる高度な解析ワークフローUI의構築。
+- **Requirement**: `02_analysis.md` および `02_analysis_api.md` の仕様に準拠し、SSEによるリアルタイム通知を受け取り、解析完了を待たずに各護石データを順次表示・修正・保存できる高度な解析ワークフローUIの構築。
 - **Acceptance criteria**:
   - ✅ 動画アップロードから解析開始、SSEイベントの購読までが一連のフローとして統合されていること。
   - ✅ `capture_extracted` イベント受信時に、一覧へ即座に「解析中カード」が追加レンダリングされること。
@@ -273,7 +273,7 @@
 ### REQ-019: ROIキャリブレーション時のプレビュー画像表示不具合の解消
 - **Type**: bug
 - **Status**: completed
-- **Current step**: Step 8: Finalization (Coordinator)
+- **Current step**: none
 - **Priority**: P1
 - **Surface**: ROIキャリブレーション画面（特にWINDOW AREAステップ）において、プレビュー画像が表示されず画像アイコンのみが表示される（リンク切れ状態）。
 - **Root Cause**: Information Design / Bug - キャリブレーション開始時に期待されるプレビュー用画像パスの不備、またはスタブモードでのパス解決ミス。ユーザーの「デフォルト画像があるはず」という期待と実装の乖離。
@@ -286,9 +286,6 @@
   - ✅ **Follow-up**: 視認性向上のためのオーバーレイ表示切替（トグルボタン）の実装。
   - ✅ **Follow-up**: ステップバーからの直接遷移（Clickable Step Bar）と、Step 1 復帰時のコンテキスト・同期の安定化。
 - **Design doc**: none
-- **Implementation notes**:
-  - `ROICalibrator.tsx`: プレビュー画像のリセット処理 (`setPreviewImage(null)`)、非同期フラグ (`canceled`) による解像度同期の整合性確保、ステップバーの `onClick` 遷移.
-  - `InteractiveCanvas.tsx`: `actualRatio` ステートによる画像実測比率の優先適用、SVGマスクの常時表示、4ステップ全てでのアスペクト比計算ロジック。
 
 ---
 
@@ -304,6 +301,26 @@
 - **Acceptance criteria**:
   - 3スロット（または3スキル）間の「隙間（Gap）」をスライダーや数値入力で調整可能であること。
 - **Design doc**: none
+
+---
+
+### REQ-025: ROIキャリブレーション画面の初期化クラッシュ修正
+- **Type**: defect
+- **Status**: done (2026-04-22)
+- **Current step**: none
+- **Priority**: P0
+- **Surface**: ROIキャリブレーション画面に遷移・滞在するとアプリがクラッシュする。
+- **Root Cause**: 
+  - **Regression**: REQ-020 で導入された同期ロジックおよび初期化フローにおいて、モックデータが `undefined` を返した際のガード（非空事後選択 `!`）が不十分。
+  - **Mock Toxicity**: MSW モックが座標値に巨大な整数を生成しており、これが起因して予期しない状態遷移が発生している。
+- **Requirement**: 
+  1. `ROICalibrator.tsx` および `roiStore.ts` から `!` アサーションを排除し、安全なアクセスに置き換える。
+  2. `openapi.yaml` を修正してモック生成の制約（数値範囲）を設け、毒性のないテストデータを担保する。
+- **Acceptance criteria**:
+  - ROIキャリブレーション画面を開いてもクラッシュが発生しないこと。
+  - モックデータ使用時に、矩形が巨大な数値にならず画面内に収まる程度（0〜3840px程度）で生成されること。
+  - プロフィール一覧から選択した際、データの一部が欠落していても適切に警告が表示され、アプリが停止しないこと。
+- **Design doc**: [implementation_plan.md](file:///<USER_HOME>/.gemini/antigravity/brain/9ec21a92-e3a4-48cd-9456-40d9aa4e98e0/implementation_plan.md)
 
 ---
 
