@@ -21,3 +21,7 @@ This document defines specialized technical standards for the frontend repositor
 ## 3. Stitch/AI Integration
 - When using Stitch-generated code, normalize it to match project-standard TypeScript interfaces and Tailwind tokens.
 - Ensure all interactive elements have unique IDs for stability during automated testing.
+
+## 4. Script-First Discovery (Token Optimization)
+- **UI Impact Analysis**: Before modifying a component, use `python <USER_HOME>\.gemini\antigravity\scripts\doc_mapper.py docs/ src/` to identify related documentation and specs.
+- **Dead Code/Tailwind Audit**: Periodically use `python <USER_HOME>\.gemini\antigravity\scripts\code_analyzer.py` (when configured for TS) or the browser sub-agent to audit UI consistency.

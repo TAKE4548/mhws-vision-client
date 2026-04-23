@@ -27,3 +27,18 @@ Any modification to high-level UI structure, components, or user flows MUST foll
 1. **Validation**: Read `docs/ui/specs/` to verify alignment with existing architecture.
 2. **Implementation**: Execute changes following the established specs.
 3. **Synchronization**: Update the relevant files in `docs/ui/specs/` (APP-STRUCTURE.md, SPEC.md, or FLOW-TRANSITION.md) to reflect the new state.
+
+## 3. Token Efficiency Protocols (Anti-Dilution)
+
+### [MUST [F-T-01]] Script-First Discovery
+To minimize context dilution, agents MUST prioritize using global scripts for information gathering:
+- **UI Impact Analysis**: Use `python <USER_HOME>\.gemini\antigravity\scripts\doc_mapper.py` to identify related documentation.
+- **Code Search**: Use `python <USER_HOME>\.gemini\antigravity\scripts\code_analyzer.py` for symbol lookup before broad grepping.
+
+### [MUST [F-T-02]] Hermetic Implementation (Task Card Compliance)
+During the `/dev-task` phase, the Engineer role MUST rely strictly on the `task.md` (Task Card) generated in `/dev-design`.
+- Opening parent PBI documents or broad SSoT files during implementation is PROHIBITED unless the Task Card is demonstrably incomplete.
+
+### [MUST [F-T-03]] Local-First Pre-Processing
+Any raw data (terminal output, logs, or file contents) exceeding 50 lines MUST be summarized using the local model (Ollama) before being processed by the cloud model.
+- **Command**: `python <USER_HOME>\.gemini\antigravity\scripts\ollama_adapter.py summarize`
