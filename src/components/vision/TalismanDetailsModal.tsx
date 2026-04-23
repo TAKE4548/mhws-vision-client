@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Shield, Edit3, Target, Crosshair, Activity } from 'lucide-react';
 import { type Talisman, useVisionStore } from '../../store/visionStore';
 import { API_HOST } from '../../lib/api-client';
+import { VisionImage } from '../common/VisionImage';
 import type { SkillInfo } from '../../api/generated/model';
 
 interface Props {
@@ -12,7 +13,6 @@ interface Props {
 const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
   const { updateTalisman } = useVisionStore();
   const [edited, setEdited] = useState<Talisman>(talisman);
-  const imageUrl = talisman.image_url || `${API_HOST}/assets/crops/${talisman.capture_id}.webp`;
 
   useEffect(() => {
     setEdited(talisman);
@@ -81,25 +81,10 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
                   <div className="font-space-tech text-[8px] text-white/10">SCALE: 1.0x_RAW</div>
                </div>
                <div className="aspect-[4/3] bg-surface-lowest rounded-tech overflow-hidden flex items-center justify-center relative group border border-white/5">
-                <img 
-                  src={imageUrl} 
-                  alt="Source Crop" 
-                  className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-700"
-                  onError={(e) => {
-                    const target = e.currentTarget as HTMLImageElement;
-                    if (target.dataset.retry === 'true') {
-                      if (!target.src.includes('via.placeholder.com')) {
-                        target.src = 'https://via.placeholder.com/400x300?text=IMAGE+NOT+FOUND';
-                      }
-                    } else {
-                      target.dataset.retry = 'true';
-                      console.log(`[Modal] Retrying image load for: ${talisman.capture_id}`);
-                      setTimeout(() => {
-                        const baseSrc = target.src.split('?')[0];
-                        target.src = `${baseSrc}?t=${Date.now()}`;
-                      }, 1500);
-                    }
-                  }}
+                <VisionImage 
+                  src={talisman.image_url} 
+                  placeholderType="modal"
+                  className="w-full h-full"
                 />
                 <div className="absolute inset-x-8 top-1/2 h-[1px] bg-kinetic-amber/20" />
                 <div className="absolute inset-y-8 left-1/2 w-[1px] bg-kinetic-amber/20" />

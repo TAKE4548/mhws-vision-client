@@ -68,4 +68,17 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
   });
 };
 
+/**
+ * Resolves an image URL by prepending the API_HOST if it's a relative path.
+ * Ensures consistent handling of leading/trailing slashes.
+ */
+export const resolveImageUrl = (url?: string | null): string => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  
+  // Remove leading slash if present to avoid double slashes, then prepend API_HOST
+  const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+  return `${API_HOST}/${cleanPath}`;
+};
+
 export default apiClient;

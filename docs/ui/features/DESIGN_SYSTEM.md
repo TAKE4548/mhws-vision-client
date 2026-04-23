@@ -164,4 +164,7 @@ HUD風の発光エフェクト。SVG内の `<defs>` に定義し `style={{ filte
 ### 9.1 画像読み込みの耐障害性 (Missing Asset Handling)
 - 護石クロップ画像の読み込み失敗時は、**1.5秒のインターバル**をおいて**自動リトライ**を1回実行する。
 - ブラウザやプロキシのキャッシュによる404状態の固定化を防ぐため、リトライ時はURL末尾に `?t={timestamp}` を付与（Cache Busting）する。
-- 2回目の読み込みも失敗した場合は、フォールバック画像（Placeholder）を表示する。
+- **UIフィードバック (VisionImage Pattern)**:
+    - `Loading`: `Loader2` アイコンの回転と `animate-pulse` によるスケルトン背景を表示。
+    - `Scanning Effect`: ロード完了した画像上に `animate-scan` による透過スキャンラインを重畳し、データの鮮度を視覚的に表現する。
+    - `Failure`: 2回のリトライ失敗後は `Scan` または `ImageOff` アイコンを `status-warning` カラーで表示する。

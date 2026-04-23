@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, Activity, Image as ImageIcon, XCircle, Trash2, Scan, Play, Settings } from 'lucide-react';
 import { useVisionStore } from '../../store/visionStore';
 import { API_HOST } from '../../lib/api-client';
+import { VisionImage } from '../common/VisionImage';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -202,32 +203,11 @@ export const AnalysisMonitor: React.FC = () => {
               recentTalismans.map((t) => (
                 <div key={t.capture_id} className="kinetic-surface-high p-3 flex gap-4 animate-in slide-in-from-right-4 duration-500 border-l-2 border-kinetic-blue/40">
                   <div className="w-16 h-16 bg-surface-lowest shrink-0 overflow-hidden rounded-sm relative">
-                    {t.image_url ? (
-                      <img 
-                        src={t.image_url.startsWith('/') ? `${API_HOST}${t.image_url}` : t.image_url} 
-                        className="w-full h-full object-cover" 
-                        alt="Discovery" 
-                        onError={(e) => {
-                          const target = e.currentTarget as HTMLImageElement;
-                          if (target.dataset.retry === 'true') {
-                            if (!target.src.includes('via.placeholder.com')) {
-                              target.src = 'https://via.placeholder.com/120x160?text=NONE';
-                            }
-                          } else {
-                            target.dataset.retry = 'true';
-                            console.log(`[Monitor] Retrying image load for: ${t.capture_id}`);
-                            setTimeout(() => {
-                              const baseSrc = target.src.split('?')[0];
-                              target.src = `${baseSrc}?t=${Date.now()}`;
-                            }, 1500);
-                          }
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center animate-pulse">
-                        <Scan className="w-4 h-4 text-kinetic-blue/20" />
-                      </div>
-                    )}
+                    <VisionImage 
+                      src={t.image_url} 
+                      placeholderType="monitor"
+                      className="w-full h-full"
+                    />
                   </div>
                   <div className="flex-1 min-w-0 space-y-1 py-1">
                     <div className="flex justify-between items-center">

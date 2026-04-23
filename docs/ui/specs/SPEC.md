@@ -40,7 +40,22 @@
 
 ---
 
-## 2. ROICalibrator コンポーネント仕様  
+## 2. Discovery Components (REQ-029)
+
+### Visual Definition
+- **VisionImage (Robust Image Loader)**
+  - `Loading State`: `Loader2` アニメーションと `animate-pulse` によるスケルトン表示。
+  - `Error State`: `ImageOff` または `Scan` アイコンによるプレースホルダー表示。
+  - `Retry Logic`: 画像取得失敗時、1.5秒の待機後にキャッシュバスター付きで自動リトライ。
+  - `Aesthetic Scanline`: ロード完了した画像上に `animate-scan` による透過スキャンラインを重畳。
+- **Discovery Card (Analysis Monitor)**
+  - `Thumbnail`: `64px x 64px` の `VisionImage` コンテナ。
+  - `Aesthetic Border`: `kinetic-blue/40` の左ボーダー。
+  - `Animation`: `slide-in-from-right-4` による動的な出現演出。
+
+---
+
+## 3. ROICalibrator コンポーネント仕様  
 
 ### Visual Definition  
 - **インタラクティブキャンバス**  

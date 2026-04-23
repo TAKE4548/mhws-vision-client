@@ -36,5 +36,6 @@
 ---
 
 ## 6. Trade-offs and Constraints
-- **Interactivity**: プロトタイプ段階では、ブラウザのストレージや API 通信は行わず、インメモリの Zustand 状態のみを使用します。
+- **Interactivity**: 実環境（LIVE_SERVER）では FastAPI 経由の REST API および SSE 通信を行い、`visionStore` (Zustand) にて永続化された護石データと画像を同期します。
+- **Asset Loading**: 画像アセットは `VisionImage` コンポーネントを介して非同期にロードされ、バックエンドのファイル保存完了を待機するための自動リトライ・キャッシュバスター機構を備えています。
 - **Visuals**: パフォーマンスに配慮し、複雑な CSS フィルターは限定的に使用し、Tailwind のカスタムユーティリティを優先します。
