@@ -12,7 +12,7 @@ export const API_BASE_URL = `${API_HOST}${API_VERSION}`;
  */
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 5000,
+  timeout: 60000,
 });
 
 /**
@@ -32,13 +32,8 @@ export interface ProfileMetadata {
 // Response interceptor for global error handling
 apiClient.interceptors.response.use(
   (response) => {
-    // Backend uses CommonResponse wrapper: { status: "success", data: T, message: string }
-    // Unwrap the 'data' property for easier use in stores/hooks
-    if (response.data && response.data.status === 'success' && response.data.data !== undefined) {
-      // NOTE: Axios interceptors change the data property.
-      // Orval generated hooks will see the unwrapped data if they are configured correctly.
-      return { ...response, data: response.data.data };
-    }
+    // Orvalの生成コードと型定義（CommonResponse envelope）を維持するため、
+    // インターセプターでの自動アンラップは行わないように変更
     return response;
   },
   (error) => {
@@ -56,7 +51,21 @@ apiClient.interceptors.response.use(
  * AxiosResponse.data (CommonResponse.data) を直接返すラッパー
  */
 export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
-  return apiClient(config).then((response) => response.data);
+  // FormDataを送る際、Content-Typeを手動で設定するとboundaryが欠落するため削除する
+  if (config.data instanceof FormData && config.headers) {
+    if (typeof config.headers.delete === 'function') {
+      config.headers.delete('Content-Type');
+      config.headers.delete('content-type');
+    } else {
+      delete (config.headers as any)['Content-Type'];
+      delete (config.headers as any)['content-type'];
+    }
+  }
+  return apiClient(config).then((response) => {
+    // 最終確認用ログ
+    console.log('[API Client] Upload Success:', response.data.status);
+    return response.data;
+  });
 };
 
 export default apiClient;

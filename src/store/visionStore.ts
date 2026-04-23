@@ -80,7 +80,10 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       const resp = await createAnalysisJob({ video: file });
       const { data } = resp;
       
-      if (!data) throw new Error('No data returned from upload');
+      if (!data) {
+        console.error('[VisionStore] uploadVideo error: data is missing in resp', resp);
+        throw new Error('No data returned from upload');
+      }
 
       set({ 
         currentJobId: data.job_id,

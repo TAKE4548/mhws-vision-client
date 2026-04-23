@@ -17,74 +17,20 @@ import type {
   PrepareCalibration201
 } from '.././model'
 
-export const getGetRoiPreviewResponseMock = (w: number = 320, h: number = 700): Promise<Blob> => {
-  return new Promise((resolve) => {
-    // ブラウザのCanvas APIを使用してダミー画像を生成
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(w, 1);
-    canvas.height = Math.max(h, 1);
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      resolve(new Blob([], { type: 'image/webp' }));
-      return;
-    }
-
-    // 背景色（MHW風のダークグレー）
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // 格子模様
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 1;
-    for(let i=0; i<canvas.width; i+=20) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height);
-      ctx.stroke();
-    }
-    for(let i=0; i<canvas.height; i+=20) {
-      ctx.beginPath();
-      ctx.moveTo(0, i); ctx.lineTo(canvas.width, i);
-      ctx.stroke();
-    }
-    
-    // 枠線
-    ctx.strokeStyle = '#f0c850';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-    // テキスト
-    ctx.fillStyle = '#f0c850';
-    ctx.font = 'bold 12px Arial';
-    ctx.fillText(`MOCK: ${w}x${h}`, 10, 20);
-    ctx.font = '10px Arial';
-    ctx.fillText('STUB MODE ACTIVE', 10, 40);
-    
-    canvas.toBlob((blob) => {
-      resolve(blob || new Blob([], { type: 'image/webp' }));
-    }, 'image/webp');
-  });
-};
+export const getGetRoiPreviewResponseMock = (): Blob => (new Blob(faker.helpers.arrayElements(faker.word.words(10).split(' '))))
 
 export const getPrepareCalibrationResponseMock = (overrideResponse: Partial< PrepareCalibration201 > = {}): PrepareCalibration201 => ({data: faker.helpers.arrayElement([{reference_image_url: faker.helpers.arrayElement([faker.word.sample(), undefined]), resolution: faker.helpers.arrayElement([{height: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined]), width: faker.helpers.arrayElement([faker.number.int({min: undefined, max: undefined}), undefined])}, undefined])}, undefined]), status: faker.helpers.arrayElement([faker.word.sample(), undefined]), ...overrideResponse})
 
 
 export const getGetRoiPreviewMockHandler = (overrideResponse?: Blob | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Blob> | Blob)) => {
-  return http.get('*/vision/preview', async (info) => {
-    await delay(1000);
+  return http.get('*/vision/preview', async (info) => {await delay(1000);
   
-    const url = new URL(info.request.url);
-    const w = parseInt(url.searchParams.get('w') || '320');
-    const h = parseInt(url.searchParams.get('h') || '700');
-  
-    const responseBody = overrideResponse !== undefined 
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined 
             ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse) 
-            : await getGetRoiPreviewResponseMock(w, h);
-
-    return new HttpResponse(responseBody, { 
-      status: 200,
-      headers: { 'Content-Type': 'image/webp' }
-    })
+            : getGetRoiPreviewResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
   })
 }
 
