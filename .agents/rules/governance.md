@@ -37,7 +37,13 @@ To minimize context dilution, agents MUST prioritize using global scripts for in
 
 ### [MUST [F-T-02]] Hermetic Implementation (Task Card Compliance)
 During the `/dev-task` phase, the Engineer role MUST rely strictly on the `task.md` (Task Card) generated in `/dev-design`.
-- Opening parent PBI documents or broad SSoT files during implementation is PROHIBITED unless the Task Card is demonstrably incomplete.
+- **[必須] コンテキスト分離**: タスクカードに記載された情報のみを前提とし、過去の履歴や広範な探索を排除する。
+- **[必須] 物理的制限**: タスクカードにスニペット（### 2.1, 2.2）がある場合、対象ファイルの全体読み込み（`read_file`）を禁止する。
+
+### [MUST [F-T-04]] Executable Verification Gate
+Before issuing a PASS verdict, the agent MUST execute the CLI commands and browser assertions defined in the `test-plan.md`.
+- **Assertion**: Must use specific ID selectors (e.g., `#analysis-status-ready`) to verify UI states.
+- **Audit**: Must run `python <USER_HOME>\.gemini\antigravity\scripts\ollama_adapter.py qa-audit` for the test plan.
 
 ### [MUST [F-T-03]] Local-First Pre-Processing
 Any raw data (terminal output, logs, or file contents) exceeding 50 lines MUST be summarized using the local model (Ollama) before being processed by the cloud model.
