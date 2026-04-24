@@ -15,7 +15,8 @@ import type {
   TalismanOut, 
   AnalysisJobStatus, 
   ROIProfile,
-  ValidationStatus
+  ValidationStatus,
+  AnalysisConfig
 } from '../api/generated/model';
 
 export type Talisman = TalismanOut;
@@ -36,10 +37,12 @@ interface VisionState {
   talismans: TalismanOut[];
   profiles: ROIProfile[];
   error: string | null;
+  analysisConfig: AnalysisConfig;
   
   // Actions
   uploadVideo: (file: File) => Promise<void>;
   startAnalysis: (profileId: string) => Promise<void>;
+  updateAnalysisConfig: (config: Partial<AnalysisConfig>) => void;
   startLocalAnalysis: (path: string) => Promise<void>;
   listenToEvents: (jobId: string) => void;
   cancelJob: () => Promise<void>;
@@ -59,6 +62,7 @@ export const useVisionStore = create<VisionState>((set, get) => ({
   talismans: [],
   profiles: [],
   error: null,
+  analysisConfig: { scroll_pace_seconds: 0.3, stillness_threshold: 0.01 },
 
   reset: () => {
     sseClient.disconnect();
@@ -105,12 +109,21 @@ export const useVisionStore = create<VisionState>((set, get) => ({
 
     try {
       set({ status: 'processing', isAnalyzing: true, error: null });
-      await startAnalysis(currentJobId, { profile_id: profileId });
+      await startAnalysis(currentJobId, { 
+        profile_id: profileId,
+        analysis_config: get().analysisConfig
+      });
       get().listenToEvents(currentJobId);
     } catch (err: any) {
       console.error('[VisionStore] Start analysis failed:', err);
       set({ status: 'failed' as any, error: '解析の開始に失敗しました。' });
     }
+  },
+
+  updateAnalysisConfig: (config: Partial<AnalysisConfig>) => {
+    set((state) => ({
+      analysisConfig: { ...state.analysisConfig, ...config }
+    }));
   },
 
   startLocalAnalysis: async (path: string) => {

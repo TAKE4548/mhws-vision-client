@@ -27,3 +27,4 @@
 | REQ-026 | ROI操作時のレスポンス向上とレイアウト安定化 | done | [PBI](docs/backlog/pbi/archive/REQ-026.md) [Task](docs/backlog/task/archive/REQ-026.md) |
 | REQ-027 | ROI同期グループの細分化（項目別独立設定） | done | [PBI](docs/backlog/pbi/archive/REQ-027.md) [Task](docs/backlog/task/archive/REQ-027.md) |
 | REQ-028 | 実機サーバ接続時の動画アップロードおよび解析開始プロセスの修正 | done | [PBI](docs/backlog/pbi/archive/REQ-028.md) [Task](docs/backlog/task/archive/REQ-028.md) |
+| REQ-030 | 動的な動画解析感度の調整機能の実装 | done | [PBI](docs/backlog/pbi/archive/REQ-030.md) [Task](docs/backlog/task/completed/REQ-030.md) |

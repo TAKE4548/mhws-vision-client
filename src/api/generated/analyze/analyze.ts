@@ -23,9 +23,9 @@ import type {
 } from '@tanstack/react-query'
 import type {
   AnalysisJobCommonResponse,
+  AnalysisStartRequest,
   CancelAnalysis200,
-  CreateAnalysisJobBody,
-  StartAnalysisBody
+  CreateAnalysisJobBody
 } from '.././model'
 import { customInstance } from '../../../lib/api-client';
 
@@ -95,14 +95,14 @@ export const useCreateAnalysisJob = <TError = void,
  */
 export const startAnalysis = (
     jobId: string,
-    startAnalysisBody: StartAnalysisBody,
+    analysisStartRequest: AnalysisStartRequest,
  ) => {
       
       
       return customInstance<AnalysisJobCommonResponse>(
       {url: `/analyze/start/${jobId}`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: startAnalysisBody
+      data: analysisStartRequest
     },
       );
     }
@@ -110,14 +110,14 @@ export const startAnalysis = (
 
 
 export const getStartAnalysisMutationOptions = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startAnalysis>>, TError,{jobId: string;data: StartAnalysisBody}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof startAnalysis>>, TError,{jobId: string;data: StartAnalysisBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startAnalysis>>, TError,{jobId: string;data: AnalysisStartRequest}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof startAnalysis>>, TError,{jobId: string;data: AnalysisStartRequest}, TContext> => {
 const {mutation: mutationOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startAnalysis>>, {jobId: string;data: StartAnalysisBody}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startAnalysis>>, {jobId: string;data: AnalysisStartRequest}> = (props) => {
           const {jobId,data} = props ?? {};
 
           return  startAnalysis(jobId,data,)
@@ -129,18 +129,18 @@ const {mutation: mutationOptions} = options ?? {};
   return  { mutationFn, ...mutationOptions }}
 
     export type StartAnalysisMutationResult = NonNullable<Awaited<ReturnType<typeof startAnalysis>>>
-    export type StartAnalysisMutationBody = StartAnalysisBody
+    export type StartAnalysisMutationBody = AnalysisStartRequest
     export type StartAnalysisMutationError = void
 
     /**
  * @summary Start analysis for a job
  */
 export const useStartAnalysis = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startAnalysis>>, TError,{jobId: string;data: StartAnalysisBody}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startAnalysis>>, TError,{jobId: string;data: AnalysisStartRequest}, TContext>, }
 ): UseMutationResult<
         Awaited<ReturnType<typeof startAnalysis>>,
         TError,
-        {jobId: string;data: StartAnalysisBody},
+        {jobId: string;data: AnalysisStartRequest},
         TContext
       > => {
 

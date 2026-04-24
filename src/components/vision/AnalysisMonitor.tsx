@@ -20,7 +20,9 @@ export const AnalysisMonitor: React.FC = () => {
     error,
     profiles,
     fetchProfiles,
-    startAnalysis
+    startAnalysis,
+    analysisConfig,
+    updateAnalysisConfig
   } = useVisionStore();
 
   const [selectedProfileId, setSelectedProfileId] = useState<string>('');
@@ -75,7 +77,8 @@ export const AnalysisMonitor: React.FC = () => {
                     <h3 className="text-2xl font-space-tech font-black text-white italic uppercase">READY FOR TACTICAL SCAN</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-surface-lowest/50 p-6 border border-white/5 rounded-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-surface-lowest/50 p-6 border border-white/5 rounded-sm">
+                    {/* Detection Profile Area */}
                     <div className="space-y-2">
                        <label className="font-label-tech text-[8px] text-white/20 uppercase tracking-widest flex items-center gap-2">
                          <Settings className="w-2 h-2" />
@@ -100,9 +103,60 @@ export const AnalysisMonitor: React.FC = () => {
                           </p>
                        )}
                     </div>
+
+                    {/* Scroll Pace Setting */}
+                    <div className="space-y-2">
+                       <label className="font-label-tech text-[8px] text-white/20 uppercase tracking-widest flex items-center gap-2">
+                         <Scan className="w-2 h-2" />
+                         Analysis Sensitivity (Scroll Pace)
+                       </label>
+                       <div className="flex items-center gap-3">
+                         <input 
+                           id="scroll-pace-input"
+                           type="number"
+                           step="0.1"
+                           min="0.1"
+                           max="2.0"
+                           value={analysisConfig.scroll_pace_seconds}
+                           onChange={(e) => updateAnalysisConfig({ scroll_pace_seconds: parseFloat(e.target.value) })}
+                           className="w-full bg-surface-high border-none text-[10px] font-space-tech text-kinetic-blue py-3 px-4 focus:ring-1 focus:ring-kinetic-blue/40 uppercase transition-all"
+                         />
+                         <span className="font-label-tech text-[8px] text-white/40 uppercase">SEC</span>
+                       </div>
+                    </div>
                     
-                    <div className="flex items-end">
+                    {/* Advanced Settings Area */}
+                    <div className="md:col-span-2 pt-2 border-t border-white/5">
+                      <details className="group" id="advanced-settings-toggle">
+                        <summary className="list-none cursor-pointer flex items-center gap-2 font-label-tech text-[8px] text-white/20 uppercase tracking-widest hover:text-white/40 transition-colors">
+                          <Settings className="w-2 h-2 group-open:rotate-90 transition-transform" />
+                          Advanced Detection Settings
+                        </summary>
+                        <div className="mt-4 p-4 bg-surface-lowest/30 rounded-sm space-y-4 animate-in slide-in-from-top-1">
+                          <div className="space-y-2">
+                            <label className="font-label-tech text-[8px] text-white/20 uppercase tracking-widest flex justify-between">
+                              <span>Stillness Threshold (Diff Tolerance)</span>
+                              <span className="text-kinetic-blue font-space-tech">{analysisConfig.stillness_threshold}</span>
+                            </label>
+                            <input 
+                              id="stillness-threshold-input"
+                              type="range"
+                              step="0.001"
+                              min="0.001"
+                              max="0.1"
+                              value={analysisConfig.stillness_threshold}
+                              onChange={(e) => updateAnalysisConfig({ stillness_threshold: parseFloat(e.target.value) })}
+                              className="w-full accent-kinetic-blue bg-surface-high h-1 rounded-full appearance-none cursor-pointer"
+                            />
+                            <p className="text-[7px] font-label-tech text-white/10 uppercase">Lower value means higher sensitivity to frame changes.</p>
+                          </div>
+                        </div>
+                      </details>
+                    </div>
+
+                    <div className="md:col-span-2 pt-4">
                       <button 
+                        id="initiate-analysis-button"
                         onClick={() => startAnalysis(selectedProfileId)}
                         disabled={!selectedProfileId || (status as string) !== 'pending'}
                         className="w-full py-3 bg-kinetic-blue text-black font-space-tech font-black text-[12px] uppercase tracking-wider flex items-center justify-center gap-3 hover:bg-white hover:shadow-[0_0_20px_rgba(56,189,248,0.5)] transition-all disabled:opacity-20"

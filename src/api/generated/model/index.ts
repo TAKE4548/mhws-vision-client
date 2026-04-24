@@ -6,11 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './analysisConfig';
 export * from './analysisErrorEventData';
 export * from './analysisJobCommonResponse';
 export * from './analysisJobCommonResponseStatus';
 export * from './analysisJobResponse';
 export * from './analysisJobStatus';
+export * from './analysisStartRequest';
 export * from './cancelAnalysis200';
 export * from './cancelAnalysis200Status';
 export * from './captureExtractedEventData';
