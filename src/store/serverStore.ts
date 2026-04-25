@@ -1,14 +1,16 @@
 import { create } from 'zustand';
-import { apiClient } from '../lib/api-client';
+import { apiClient, API_HOST } from '../lib/api-client';
 
 interface ServerState {
   isOnline: boolean;
   isChecking: boolean;
+  isStubMode: boolean; // 追加
   lastChecked: string | null;
   serverError: string | null;
   checkHealth: () => Promise<void>;
   startPolling: () => void;
   stopPolling: () => void;
+  setStubMode: (isStub: boolean) => void; // 追加
 }
 
 let pollingIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -16,14 +18,15 @@ let pollingIntervalId: ReturnType<typeof setInterval> | null = null;
 export const useServerStore = create<ServerState>((set, get) => ({
   isOnline: false,
   isChecking: false,
+  isStubMode: localStorage.getItem('api_stub_mode') !== 'false', // デフォルトはTrue
   lastChecked: null,
   serverError: null,
 
   checkHealth: async () => {
     set({ isChecking: true });
     try {
-      // 決まったエンドポイントがないため、暫定的にルートを叩く (将来的に /health に変更予定)
-      await apiClient.get('/');
+      // サーバーのルート（/）を叩いて死活監視
+      await apiClient.get('/', { baseURL: API_HOST });
       set({
         isOnline: true,
         serverError: null,
@@ -60,5 +63,12 @@ export const useServerStore = create<ServerState>((set, get) => ({
       clearInterval(pollingIntervalId);
       pollingIntervalId = null;
     }
+  },
+
+  setStubMode: (isStub) => {
+    localStorage.setItem('api_stub_mode', isStub.toString());
+    set({ isStubMode: isStub });
+    // モード切り替え時はMSWの有効/無効を反映させるためにリロードを推奨（または自動リロード）
+    window.location.reload();
   }
 }));

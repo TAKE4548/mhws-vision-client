@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 # Absolute path to the global linter
-GLOBAL_LINTER = r"<USER_HOME>\.gemini\antigravity\scripts\backlog_linter.py"
+GLOBAL_LINTER = r"${GLOBAL_SCRIPTS}\backlog_linter.py"
 
 def run_linter():
     if not Path(GLOBAL_LINTER).exists():

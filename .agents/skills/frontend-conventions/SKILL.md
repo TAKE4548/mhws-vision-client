@@ -14,8 +14,21 @@ This document defines specialized technical standards for the frontend repositor
 ## 2. State & Styling
 - **Zustand**: Keep a single global store for talisman data and analysis status.
 - **Tailwind CSS**: Exclusively use utility classes or `@apply` in `index.css`. No inline styles.
-- **Design Integrity**: Refer to `docs/ui/features/DESIGN_SYSTEM.md` for all color and spacing tokens.
+- **Design Integrity**: 
+  - Refer to `docs/ui/features/DESIGN_SYSTEM.md` for color/spacing tokens.
+  - Refer to `docs/ui/specs/` (APP-STRUCTURE.md, SPEC.md, FLOW-TRANSITION.md) for UI architecture and component specifications.
 
 ## 3. Stitch/AI Integration
 - When using Stitch-generated code, normalize it to match project-standard TypeScript interfaces and Tailwind tokens.
 - Ensure all interactive elements have unique IDs for stability during automated testing.
+
+## 4. Script-First Discovery (Token Optimization)
+- **UI Impact Analysis**: Before modifying a component, use `python ${GLOBAL_SCRIPTS}\doc_mapper.py docs/ src/` to identify related documentation and specs.
+- **Dead Code/Tailwind Audit**: Periodically use `python ${GLOBAL_SCRIPTS}\code_analyzer.py` (when configured for TS) or the browser sub-agent to audit UI consistency.
+
+## 5. Token Hygiene & Context Management (Anti-Dilution)
+
+- **[MUST] Task Card Synchronization**: In `dev-task` phase, you MUST read/update the sharded task file (`docs/backlog/task/active/REQ-xxx.md`) at the beginning and end of every turn to ensure hermetic execution.
+- **[必須 [R-EN-1]] 探索の厳禁**: 欠落している型定義や Props 定義を探すためにリポジトリを `grep` することを厳禁とする。
+- **[必須 [R-EN-4]] 即時差し戻し**: タスクカードの情報が不十分な場合、自力で解決しようとせず、即座に作業を停止して `/dev-design` へ差し戻すこと。
+- **[密封ルール] コンテキスト分離**: タスク開始時に、以前のチャット履歴を意識から排除し、タスクカードに記載された情報のみを前提として作業を開始すること。

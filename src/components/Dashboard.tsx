@@ -4,32 +4,58 @@ import { useVisionStore, Talisman } from '../store/visionStore';
 import VideoUploader from './vision/VideoUploader';
 import AnalysisMonitor from './vision/AnalysisMonitor';
 import TalismanDetailsModal from './vision/TalismanDetailsModal';
+import { API_BASE_URL, API_HOST } from '../lib/api-client';
 
 const TalismanCard: React.FC<{ talisman: Talisman, onClick: () => void }> = ({ talisman, onClick }) => {
-  const imageUrl = `http://localhost:8000/api/v1/assets/crops/${talisman.capture_id}.webp`;
-  const timestamp = new Date().toLocaleTimeString('ja-JP', { hour12: false }); // Mock time
+  const imageUrl = talisman.image_url || `${API_HOST}/assets/crops/${talisman.capture_id}.webp`;
+  const timestamp = (talisman as any).timestamp_ms 
+    ? new Date((talisman as any).timestamp_ms).toLocaleTimeString('ja-JP', { hour12: false })
+    : new Date().toLocaleTimeString('ja-JP', { hour12: false });
+
+  const isProcessing = talisman.validation_status === 'processing';
 
   return (
     <div 
-      onClick={onClick}
-      className="kinetic-surface-high group hover:bg-surface-bright/20 transition-all overflow-hidden cursor-pointer relative flex h-48 rounded-tech border-none"
+      onClick={!isProcessing ? onClick : undefined}
+      className={`kinetic-surface-high group hover:bg-surface-bright/20 transition-all overflow-hidden relative flex h-48 rounded-tech border-none ${isProcessing ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}
     >
       {/* 1. Left: Vertical Crop Image (3:4 Ratio) */}
       <div className="w-[120px] h-full bg-surface-lowest relative overflow-hidden shrink-0">
-        <img 
-          src={imageUrl} 
-          alt="Crop" 
-          className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-700 ease-out"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/120x160?text=SCAN';
-          }}
-        />
-        {/* SPEC: Laser Scan Animation Placeholder could be here, but user said only in ROI monitor */}
+        {!isProcessing && (
+          <img 
+            src={imageUrl} 
+            alt="Crop" 
+            className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-700 ease-out"
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              if (target.dataset.retry === 'true') {
+                if (!target.src.includes('via.placeholder.com')) {
+                  target.src = 'https://via.placeholder.com/120x160?text=NOT+FOUND';
+                }
+              } else {
+                target.dataset.retry = 'true';
+                console.log(`[Dashboard] Retrying image load for: ${talisman.capture_id}`);
+                setTimeout(() => {
+                  const baseSrc = target.src.split('?')[0];
+                  target.src = `${baseSrc}?t=${Date.now()}`;
+                }, 1500);
+              }
+            }}
+          />
+        )}
+        {isProcessing && (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-surface-high/50">
+            <RefreshCcw className="w-6 h-6 text-kinetic-blue animate-spin mb-2" />
+            <span className="font-space-tech text-[8px] text-kinetic-blue uppercase">OCR IN PROGRESS</span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent to-surface-high/50" />
         
         {/* Bleeding Label */}
-        <div className="absolute top-0 left-0 bg-kinetic-amber px-2 py-0.5 rounded-br-sm shadow-lg z-10">
-           <span className="font-space-tech text-[8px] font-black text-black">MOCK_TAL</span>
+        <div className={`absolute top-0 left-0 px-2 py-0.5 rounded-br-sm shadow-lg z-10 ${isProcessing ? 'bg-kinetic-blue' : 'bg-kinetic-amber'}`}>
+           <span className="font-space-tech text-[8px] font-black text-black">
+             {isProcessing ? 'PROBING' : `UNIT_${talisman.capture_id.slice(-4).toUpperCase()}`}
+           </span>
         </div>
       </div>
 
@@ -54,14 +80,14 @@ const TalismanCard: React.FC<{ talisman: Talisman, onClick: () => void }> = ({ t
 
           {/* Row 1: Rarity Badge */}
           <div>
-            <span className="inline-block px-2 py-0.5 bg-white/5 rounded-tech font-space-tech text-[9px] font-black text-on-surface tracking-widest">
-              RARE {talisman.rarity}
+            <span className={`inline-block px-2 py-0.5 rounded-tech font-space-tech text-[9px] font-black tracking-widest ${isProcessing ? 'bg-white/5 text-white/20' : 'bg-white/5 text-on-surface'}`}>
+              RARE {talisman.rarity?.value ?? '?'}
             </span>
           </div>
 
           {/* Row 2: Slot Configuration */}
           <div className="flex gap-2">
-            {talisman.slots.map((s, i) => (
+            {(talisman.slots?.value?.length > 0 ? talisman.slots.value : [0, 0, 0]).map((s, i) => (
               <div key={i} className="flex flex-col items-center gap-1">
                 <div className={s > 0 ? "text-kinetic-blue" : "text-white/5"}>
                   <div className="font-space-tech text-[10px] font-black">{s > 0 ? `[${s}]` : '[-]'}</div>
@@ -72,14 +98,22 @@ const TalismanCard: React.FC<{ talisman: Talisman, onClick: () => void }> = ({ t
 
           {/* Row 3: Skill List */}
           <div className="space-y-1">
-            {talisman.skills.slice(0, 2).map((skill, idx) => (
-              <div key={idx} className="flex justify-between items-center group/skill">
-                <span className="font-label-tech text-[9px] text-white/40 truncate mr-2 uppercase group-hover/skill:text-on-surface transition-colors">
-                  {skill.name}
-                </span>
-                <span className="font-space-tech text-[9px] font-black text-on-surface">LV{skill.level}</span>
+            {talisman.skills?.length > 0 ? (
+              talisman.skills.slice(0, 2).map((skill, idx) => (
+                <div key={idx} className="flex justify-between items-center group/skill">
+                  <span className="font-label-tech text-[9px] text-white/40 truncate mr-2 uppercase group-hover/skill:text-on-surface transition-colors">
+                    {skill.name}
+                  </span>
+                  <span className="font-space-tech text-[9px] font-black text-on-surface">LV{skill.level}</span>
+                </div>
+              ))
+            ) : (
+              <div className="h-10 flex items-center">
+                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                   {isProcessing && <div className="h-full bg-kinetic-blue/20 animate-pulse w-2/3" />}
+                </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -92,8 +126,8 @@ const TalismanCard: React.FC<{ talisman: Talisman, onClick: () => void }> = ({ t
         </div>
       </div>
 
-      {/* Digital Zoom Hover Overlay (Optional but specified) */}
-      <div className="absolute inset-0 border border-kinetic-amber/0 group-hover:border-kinetic-amber/20 transition-colors pointer-events-none" />
+      {/* Digital Zoom Hover Overlay */}
+      <div className={`absolute inset-0 border transition-colors pointer-events-none ${isProcessing ? 'border-kinetic-blue/10' : 'border-kinetic-amber/0 group-hover:border-kinetic-amber/20'}`} />
     </div>
   );
 };

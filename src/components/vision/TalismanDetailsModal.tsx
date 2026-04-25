@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Shield, Edit3, Target, Crosshair, Activity } from 'lucide-react';
-import { Talisman, useVisionStore } from '../../store/visionStore';
+import { type Talisman, useVisionStore } from '../../store/visionStore';
+import { API_HOST } from '../../lib/api-client';
+import { VisionImage } from '../common/VisionImage';
+import type { SkillInfo } from '../../api/generated/model';
 
 interface Props {
   talisman: Talisman;
@@ -10,27 +13,20 @@ interface Props {
 const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
   const { updateTalisman } = useVisionStore();
   const [edited, setEdited] = useState<Talisman>(talisman);
-  const imageUrl = `http://localhost:8000/api/v1/assets/crops/${talisman.capture_id}.webp`;
 
   useEffect(() => {
     setEdited(talisman);
   }, [talisman]);
 
   const handleSave = () => {
-    updateTalisman(edited);
+    updateTalisman(talisman.capture_id, edited);
     onClose();
   };
 
   const updateSkill = (index: number, field: 'name' | 'level', value: string | number) => {
     const newSkills = [...edited.skills];
-    newSkills[index] = { ...newSkills[index], [field]: value };
+    newSkills[index] = { ...newSkills[index], [field]: value } as SkillInfo;
     setEdited({ ...edited, skills: newSkills });
-  };
-
-  const updateSlot = (index: number, value: number) => {
-    const newSlots = [...edited.slots];
-    newSlots[index] = value;
-    setEdited({ ...edited, slots: newSlots });
   };
 
   // Mock Waveform Generator for Slot Profile
@@ -85,15 +81,11 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
                   <div className="font-space-tech text-[8px] text-white/10">SCALE: 1.0x_RAW</div>
                </div>
                <div className="aspect-[4/3] bg-surface-lowest rounded-tech overflow-hidden flex items-center justify-center relative group border border-white/5">
-                <img 
-                  src={imageUrl} 
-                  alt="Source Crop" 
-                  className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-700"
-                  onError={(e) => {
-                     (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=IMAGE+NOT+FOUND';
-                  }}
+                <VisionImage 
+                  src={talisman.image_url} 
+                  placeholderType="modal"
+                  className="w-full h-full"
                 />
-                {/* Calibration Overlays */}
                 <div className="absolute inset-x-8 top-1/2 h-[1px] bg-kinetic-amber/20" />
                 <div className="absolute inset-y-8 left-1/2 w-[1px] bg-kinetic-amber/20" />
                 <div className="absolute top-4 left-4 font-space-tech text-[8px] text-white/20 p-2 bg-black/40 backdrop-blur-md italic">
@@ -102,16 +94,12 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
               </div>
             </div>
 
-            {/* ROI Live Feed (SPEC 4.3) - Scaled Monitor */}
             <div className="space-y-3">
                <span className="font-label-tech text-kinetic-blue/60 text-[10px] uppercase tracking-widest">B. Tactical ROI Live Feed</span>
                <div className="aspect-video bg-surface-lowest rounded-tech relative overflow-hidden flex items-center justify-center group border border-white/5">
                   <div className="absolute inset-0 bg-blue-500/5 animate-pulse" />
                   <Target size={32} className="text-white/5 group-hover:text-kinetic-blue/20 transition-colors" />
-                  
-                  {/* Laser Scan Line Implementation */}
                   <div className="absolute inset-x-0 h-[2px] bg-kinetic-blue/40 shadow-[0_0_15px_#adc6ff] animate-[scan_3s_linear_infinite]" />
-                  
                   <div className="absolute bottom-4 left-4 flex flex-col gap-1">
                      <span className="font-space-tech text-[10px] font-black text-kinetic-blue">MONITORING_ACTIVE</span>
                      <span className="font-label-tech text-[7px] text-white/20">BUFFER: 240FPS // LATENCY: 12ms</span>
@@ -132,16 +120,19 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <label className="font-label-tech text-white/10 text-[9px] uppercase">Extraction Confidence</label>
-                  <div className="font-space-tech text-2xl font-black text-kinetic-amber">{(talisman.confidence * 100).toFixed(2)}<span className="text-xs opacity-40 ml-1">%</span></div>
+                  <div className="font-space-tech text-2xl font-black text-kinetic-amber">{((edited.rarity?.confidence || 0) * 100).toFixed(2)}<span className="text-xs opacity-40 ml-1">%</span></div>
                   <div className="h-0.5 bg-white/5 w-full">
-                    <div className="h-full bg-kinetic-amber" style={{ width: `${talisman.confidence * 100}%` }} />
+                    <div className="h-full bg-kinetic-amber" style={{ width: `${(edited.rarity?.confidence || 0) * 100}%` }} />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="font-label-tech text-white/10 text-[9px] uppercase">Manual Tier Override</label>
                   <select 
-                    value={edited.rarity}
-                    onChange={(e) => setEdited({ ...edited, rarity: parseInt(e.target.value) })}
+                    value={edited.rarity?.value}
+                    onChange={(e) => setEdited({ 
+                      ...edited, 
+                      rarity: { ...edited.rarity, value: parseInt(e.target.value), confidence: edited.rarity?.confidence || 1 } 
+                    })}
                     className="w-full bg-surface-lowest border-none rounded-tech px-4 py-4 text-sm font-space-tech font-black text-on-surface appearance-none focus:ring-0"
                   >
                     {[...Array(12)].map((_, i) => (
@@ -154,16 +145,24 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
 
             {/* 2. Slot Recognition Profile (SPEC 4.2) */}
             <section className="space-y-6">
-              <div className="flex items-center gap-3">
+               <div className="flex items-center gap-3">
                 <Activity size={14} className="text-kinetic-blue" />
                 <span className="font-label-tech text-on-surface/80 uppercase tracking-widest">2. Slot Recognition Profile</span>
               </div>
 
               <div className="flex gap-4">
-                {edited.slots.map((slot, idx) => (
+                {(edited.slots?.value || []).map((slot, idx) => (
                   <button 
                     key={idx}
-                    onClick={() => updateSlot(idx, (slot + 1) % 5)}
+                    onClick={() => {
+                       const nextVal = (slot + 1) % 5;
+                       const newSlotValues = [...(edited.slots?.value || [])];
+                       newSlotValues[idx] = nextVal;
+                       setEdited({ 
+                         ...edited, 
+                         slots: { ...edited.slots, value: newSlotValues, confidence: edited.slots?.confidence || 1 } 
+                       });
+                    }}
                     className="flex-1 bg-surface-lowest p-4 rounded-tech flex flex-col gap-4 group/slot hover:bg-surface-high transition-all border border-white/0 hover:border-white/5"
                   >
                     <div className="flex justify-between items-start">
@@ -171,7 +170,6 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
                        <span className={`font-space-tech text-xs font-black ${slot > 0 ? "text-kinetic-blue" : "text-white/5"}`}>{slot > 0 ? `LV${slot}` : 'NULL'}</span>
                     </div>
                     
-                    {/* Render Waveform Graph (SPEC 4.2) */}
                     {renderWaveform(idx * 10)}
 
                     <div className="grid grid-cols-2 gap-2 mt-2">
@@ -181,7 +179,7 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
                        </div>
                        <div className="flex flex-col">
                           <span className="font-label-tech text-[7px] text-white/20">B (BG)</span>
-                          <span className="font-space-tech text-[9px] font-black text-white/40">0.{Math.floor(Math.random() * 20)}</span>
+                          <span className="font-space-tech text-[9px] font-black text-white/40">{((edited.slots?.confidence || 0) * 10).toFixed(2)}</span>
                        </div>
                     </div>
                   </button>
@@ -200,7 +198,7 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
               </div>
 
               <div className="space-y-4">
-                {edited.skills.map((skill, idx) => (
+                {(edited.skills || []).map((skill, idx) => (
                   <div key={idx} className="flex gap-4 items-end group/field bg-white/5 p-4 rounded-tech relative">
                     <div className="flex-1 space-y-2">
                        <label className="font-label-tech text-[8px] text-white/10 group-focus-within/field:text-kinetic-amber transition-colors">Skill Identifier {idx + 1}</label>
@@ -213,8 +211,8 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
                       />
                     </div>
                     <div className="w-20 space-y-2">
-                      <label className="font-label-tech text-[8px] text-white/10 text-center block">Level</label>
-                      <input 
+                       <label className="font-label-tech text-[8px] text-white/10 text-center block">Level</label>
+                       <input 
                         type="number"
                         min="0"
                         max="7"
@@ -243,7 +241,7 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
             onClick={handleSave}
             className="flex items-center gap-4 px-12 py-5 liquid-neon-btn rounded-tech font-space-tech text-xs uppercase"
           >
-            <Save size={18} />
+            <X size={18} />
             <span>Commit Tactical Override</span>
           </button>
         </div>

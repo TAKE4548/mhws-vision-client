@@ -5,42 +5,38 @@
 
 export const MOCK_TALISMANS = [
   {
-    id: 'mock-1',
-    rarity: 12,
-    skill1_name: '攻撃',
-    skill1_level: 3,
-    skill2_name: '見切り',
-    skill2_level: 2,
-    slot1: 4,
-    slot2: 1,
-    slot3: 1,
+    capture_id: 'mock-1',
+    rarity: { value: 12, confidence: 1.0 },
+    slots: { value: [4, 1, 1], confidence: 1.0 },
+    skills: [
+      { name: '攻撃', level: 3, confidence: 0.98 },
+      { name: '見切り', level: 2, confidence: 0.95 },
+    ],
     confidence: 0.98,
+    validation_status: 'valid',
     image_url: 'https://placehold.jp/24/333333/ffffff/150x150.png?text=Talisman+1',
   },
   {
-    id: 'mock-2',
-    rarity: 11,
-    skill1_name: '弱点特効',
-    skill1_level: 2,
-    skill2_name: '超会心',
-    skill2_level: 1,
-    slot1: 3,
-    slot2: 0,
-    slot3: 0,
+    capture_id: 'mock-2',
+    rarity: { value: 11, confidence: 1.0 },
+    slots: { value: [3, 0, 0], confidence: 1.0 },
+    skills: [
+      { name: '弱点特効', level: 2, confidence: 0.88 },
+      { name: '超会心', level: 1, confidence: 0.82 },
+    ],
     confidence: 0.85,
+    validation_status: 'needs_selection',
     image_url: 'https://placehold.jp/24/333333/ffffff/150x150.png?text=Talisman+2',
   },
   {
-    id: 'mock-3',
-    rarity: 10,
-    skill1_name: 'ガード性能',
-    skill1_level: 5,
-    skill2_name: '',
-    skill2_level: 0,
-    slot1: 2,
-    slot2: 2,
-    slot3: 0,
+    capture_id: 'mock-3',
+    rarity: { value: 10, confidence: 1.0 },
+    slots: { value: [2, 2, 0], confidence: 1.0 },
+    skills: [
+      { name: 'ガード性能', level: 5, confidence: 0.92 },
+    ],
     confidence: 0.92,
+    validation_status: 'valid',
     image_url: 'https://placehold.jp/24/333333/ffffff/150x150.png?text=Talisman+3',
   },
 ];
@@ -68,22 +64,50 @@ export const MOCK_ANALYSIS_COMPLETED = {
 export const MOCK_ROI_PROFILES = [
   {
     id: 'profile-1',
-    name: 'Standard 4K (Stub)',
-    resolution: '3840x2160',
-    config: {},
+    name: 'Standard 4K (FHD Mode)',
+    description: '4Kモニターで1920x1080出力時の推奨設定。',
+    resolution: '1920x1080',
+    last_calibrated_at: '2026-04-18T10:00:00Z',
+    created_at: '2026-04-10T08:00:00Z',
+    updated_at: '2026-04-18T10:00:00Z',
+    parent_window: { x: 2800, y: 400, w: 800, h: 1400 },
+    rarity: { x_rel: 20, y_rel: 20, w: 200, h: 50 },
+    slots: [
+      { id: 0, icon: { x_rel: 30, y_rel: 100, w: 40, h: 40 }, level: { x_rel: 80, y_rel: 100, w: 30, h: 40 } },
+      { id: 1, icon: { x_rel: 30, y_rel: 160, w: 40, h: 40 }, level: { x_rel: 80, y_rel: 160, w: 30, h: 40 } },
+      { id: 2, icon: { x_rel: 30, y_rel: 220, w: 40, h: 40 }, level: { x_rel: 80, y_rel: 220, w: 30, h: 40 } },
+    ],
+    skills: [
+      { id: 0, name: { x_rel: 150, y_rel: 100, w: 300, h: 50 }, level: { x_rel: 460, y_rel: 100, w: 100, h: 50 } },
+      { id: 1, name: { x_rel: 150, y_rel: 220, w: 300, h: 50 }, level: { x_rel: 460, y_rel: 220, w: 100, h: 50 } },
+      { id: 2, name: { x_rel: 150, y_rel: 340, w: 300, h: 50 }, level: { x_rel: 460, y_rel: 340, w: 100, h: 50 } },
+    ],
+    normalization: {
+      bg_point: { x_rel: 90, y_rel: 110 },
+      frame_point: { x_rel: 95, y_rel: 115 },
+    }
   },
   {
     id: 'profile-2',
-    name: 'Standard 1080p (Stub)',
-    resolution: '1920x1080',
-    config: {},
-  },
+    name: 'Native 4K (Ultra)',
+    description: '4Kネイティブ出力用の高精度設定。',
+    resolution: '3840x2160',
+    last_calibrated_at: '2026-04-19T15:30:00Z',
+    created_at: '2026-04-12T09:00:00Z',
+    updated_at: '2026-04-19T15:30:00Z',
+    parent_window: { x: 5600, y: 800, w: 1600, h: 2800 },
+    rarity: { x_rel: 40, y_rel: 40, w: 400, h: 100 },
+    slots: [], // 省略
+    skills: [], // 省略
+    normalization: {
+      bg_point: { x_rel: 180, y_rel: 220 },
+      frame_point: { x_rel: 190, y_rel: 230 },
+    }
+  }
 ];
 
-export const MOCK_VISION_PREVIEW = {
-  image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', // Transparent 1x1
-  regions: [],
-};
+// MOCK_VISION_PREVIEW is no longer used here as api-client now fetches the sample asset directly.
+
 
 /**
  * Helper to wrap mock data in CommonResponse format
