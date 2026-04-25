@@ -1,0 +1,140 @@
+{
+  ".agents/context.md": [
+    {
+      "line": 6,
+      "type": "Local Path",
+      "severity": "High",
+      "description": "Exposes a local file system path (C:\\Users\\audih\\ws\\hogehoge\\mhws-vision-server\\docs\\system\\openapi.yaml), which could potentially allow access to sensitive files."
+    }
+  ],
+  ".agents/rules/governance.md": [
+    {
+      "line": 7,
+      "type": "Local Path",
+      "severity": "Medium",
+      "description": "Exposure of local file path: C:\\Users\\audih\\.gemini\\antigravity\\governance\\GEMINI.md"
+    },
+    {
+      "line": 35,
+      "type": "Script Path",
+      "severity": "Low",
+      "description": "Path to Python script: C:\\Users\\audih\\.gemini\\antigravity\\scripts\\doc_mapper.py"
+    },
+    {
+      "line": 36,
+      "type": "Script Path",
+      "severity": "Low",
+      "description": "Path to Python script: C:\\Users\\audih\\.gemini\\antigravity\\scripts\\code_analyzer.py"
+    },
+    {
+      "line": 40,
+      "type": "Comment",
+      "severity": "Low",
+      "description": "Japanese comment indicating context separation and physical limitations."
+    },
+    {
+      "line": 46,
+      "type": "Script Path",
+      "severity": "Low",
+      "description": "Path to Python script: C:\\Users\\audih\\.gemini\\antigravity\\scripts\\ollama_adapter.py"
+    },
+    {
+      "line": 49,
+      "type": "Command",
+      "severity": "Low",
+      "description": "Command referencing local model and summarization."
+    }
+  ],
+  ".agents/scripts/artifact_linter.py": [
+    {
+      "line": 6,
+      "type": "Local Path",
+      "severity": "Medium",
+      "description": "Exposure of absolute local path which may reveal sensitive directory structure."
+    }
+  ],
+  ".agents/scripts/backlog_linter.py": [
+    {
+      "line": 6,
+      "type": "Local Path",
+      "severity": "Medium",
+      "description": "Hardcoded absolute Windows path (C:\\Users\\...\\) may expose sensitive information or be incompatible when deployed to different environments."
+    }
+  ],
+  ".agents/skills/frontend-conventions/SKILL.md": [
+    {
+      "line": 26,
+      "type": "Local Path",
+      "severity": "Medium",
+      "description": "Exposes local directory structure with Windows path 'C:\\Users\\audih\\...'. Avoid committing local paths to version control."
+    },
+    {
+      "line": 27,
+      "type": "Local Path",
+      "severity": "Medium",
+      "description": "Exposes local directory structure with Windows path 'C:\\Users\\audih\\...'. Avoid committing local paths to version control."
+    }
+  ],
+  ".agents/skills/role-architect/SKILL.md": [
+    {
+      "line": 8,
+      "type": "Local path",
+      "severity": "Medium",
+      "description": "Exposure of local Windows file system path (C:\\Users\\audih\\...), which may indicate sensitive files or directories if accessible externally."
+    }
+  ],
+  ".agents/skills/role-ba/SKILL.md": [
+    {
+      "line": 8,
+      "type": "Local Path",
+      "severity": "Medium",
+      "description": "Exposure of local file system path in URI: file:///<USER_HOME>/.gemini/antigravity/skills/role-ba/SKILL.md"
+    }
+  ],
+  ".agents/skills/role-engineer/SKILL.md": [
+    {
+      "line": 9,
+      "type": "LocalPath",
+      "severity": "Medium",
+      "description": "Exposure of local file system path (C:\\Users\\audih\\.gemini\\antigravity\\skills\\role-engineer\\SKILL.md) which may reveal internal directory structure and sensitive data locations."
+    }
+  ],
+  ".agents/skills/role-system-architect/SKILL.md": [
+    {
+      "line": 9,
+      "type": "Local Path",
+      "severity": "Medium",
+      "description": "Exposure of local file path pointing to user-specific directory (C:\\Users\\audih\\...), which may contain sensitive data or configuration files."
+    }
+  ],
+  ".agents/skills/role-tester-reviewer/SKILL.md": [
+    {
+      "line": 9,
+      "type": "Local path",
+      "severity": "High",
+      "description": "Exposure of local file path which may contain sensitive information or be used for unauthorized access."
+    }
+  ],
+  ".agents/skills/role-ux-designer/SKILL.md": [
+    {
+      "line": 11,
+      "type": "Local path",
+      "severity": "Medium",
+      "description": "Exposure of local file system path (<USER_HOME>/.gemini/antigravity/skills/role-ux-designer/SKILL.md) which may indicate sensitive project structure or user-specific configuration locations"
+    },
+    {
+      "line": 30,
+      "type": "Local path",
+      "severity": "Medium",
+      "description": "Exposure of local executable path (C:\\Users\\audih\\.gemini\\antigravity\\scripts\\ollama_adapter.py) which could reveal internal tooling or user-specific configuration locations"
+    }
+  ],
+  ".agents/skills/task-backlog-management/SKILL.md": [
+    {
+      "line": 9,
+      "type": "LocalPath",
+      "severity": "High",
+      "description": "Exposure of local file system path (C:\\Users\\audih\\.gemini\\antigravity\\skills\\task-backlog-management\\SKILL.md) which may contain sensitive information if accessible."
+    }
+  ]
+}

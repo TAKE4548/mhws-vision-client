@@ -131,7 +131,7 @@ export const VideoUploader: React.FC = () => {
           <input
             name="localPath"
             type="text"
-            placeholder="サーバー上の絶対パスを入力 (e.g. C:\Users\...)"
+            placeholder="サーバー上の絶対パスを入力 (e.g. /workspace/video.mp4)"
             className="flex-1 bg-mhw-panel border border-mhw-accent/20 px-4 py-2 text-sm focus:border-mhw-accent/60 outline-none transition-colors"
           />
           <button

@@ -32,8 +32,8 @@ Any modification to high-level UI structure, components, or user flows MUST foll
 
 ### [MUST [F-T-01]] Script-First Discovery
 To minimize context dilution, agents MUST prioritize using global scripts for information gathering:
-- **UI Impact Analysis**: Use `python <USER_HOME>\.gemini\antigravity\scripts\doc_mapper.py` to identify related documentation.
-- **Code Search**: Use `python <USER_HOME>\.gemini\antigravity\scripts\code_analyzer.py` for symbol lookup before broad grepping.
+- **UI Impact Analysis**: Use `python ${GLOBAL_SCRIPTS}\doc_mapper.py` to identify related documentation.
+- **Code Search**: Use `python ${GLOBAL_SCRIPTS}\code_analyzer.py` for symbol lookup before broad grepping.
 
 ### [MUST [F-T-02]] Hermetic Implementation (Task Card Compliance)
 During the `/dev-task` phase, the Engineer role MUST rely strictly on the `task.md` (Task Card) generated in `/dev-design`.
@@ -43,8 +43,8 @@ During the `/dev-task` phase, the Engineer role MUST rely strictly on the `task.
 ### [MUST [F-T-04]] Executable Verification Gate
 Before issuing a PASS verdict, the agent MUST execute the CLI commands and browser assertions defined in the `test-plan.md`.
 - **Assertion**: Must use specific ID selectors (e.g., `#analysis-status-ready`) to verify UI states.
-- **Audit**: Must run `python <USER_HOME>\.gemini\antigravity\scripts\ollama_adapter.py qa-audit` for the test plan.
+- **Audit**: Must run `python ${GLOBAL_SCRIPTS}\ollama_adapter.py qa-audit` for the test plan.
 
 ### [MUST [F-T-03]] Local-First Pre-Processing
 Any raw data (terminal output, logs, or file contents) exceeding 50 lines MUST be summarized using the local model (Ollama) before being processed by the cloud model.
-- **Command**: `python <USER_HOME>\.gemini\antigravity\scripts\ollama_adapter.py summarize`
+- **Command**: `python ${GLOBAL_SCRIPTS}\ollama_adapter.py summarize`

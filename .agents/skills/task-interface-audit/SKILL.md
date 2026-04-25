@@ -8,8 +8,8 @@ This task ensures the boundary between decoupled repositories remains consistent
 
 ## 1. Audit Requirements (Script-First Extraction)
 - **[MANDATORY] Surgical Extraction**: DO NOT read the entire `openapi.yaml`. Instead:
-    1. Run `python <USER_HOME>\.gemini\antigravity\scripts\openapi_parser.py ../mhws-vision-server/docs/system/openapi.yaml list-endpoints` to identify the target.
-    2. Run `python <USER_HOME>\.gemini\antigravity\scripts\openapi_parser.py ../mhws-vision-server/docs/system/openapi.yaml get-endpoint <path> <method>` to extract the specific contract.
+    1. Run `python ${GLOBAL_SCRIPTS}\openapi_parser.py ../mhws-vision-server/docs/system/openapi.yaml list-endpoints` to identify the target.
+    2. Run `python ${GLOBAL_SCRIPTS}\openapi_parser.py ../mhws-vision-server/docs/system/openapi.yaml get-endpoint <path> <method>` to extract the specific contract.
 - **Contract Compliance**: Verify that the Frontend implementation aligns with the extracted endpoint snippet.
 - **Model Validation**: Verify that Backend's Pydantic schemas (from the SSoT) match the Frontend's TypeScript interfaces.
 - **Endpoint Reachability**: Ensure URLs and HTTP methods in the Frontend client match the SSoT.

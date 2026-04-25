@@ -27,5 +27,5 @@ Every new feature or major view enhancement MUST include explicit definitions an
 Always cross-reference `docs/ui/features/DESIGN_SYSTEM.md`. If a design proposal deviates from the established system, the agent MUST identify this as a "Professional Dissent" and seek user approval.
 
 ## 3. Hybrid Orchestration (Local Expert)
-- Use `python <USER_HOME>\.gemini\antigravity\scripts\ollama_adapter.py sync-docs` to master current UI rules.
+- Use `python ${GLOBAL_SCRIPTS}\ollama_adapter.py sync-docs` to master current UI rules.
 - Use `ux-audit` to audit existing CSS/Components for token compliance using the local model.

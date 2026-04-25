@@ -9,8 +9,8 @@
 - **判定**: `vitest` の出力結果が `PASS` であること。
 
 ## 2. ツール主導監査 (Tool-Driven Audit)
-- **API検証**: `python <USER_HOME>\.gemini\antigravity\scripts\openapi_parser.py <PROJECT_ROOT>\mhws-vision-server\docs\system\openapi.yaml get-endpoint "/analyze/start/{job_id}" POST`
-- **コード監査**: `python <USER_HOME>\.gemini\antigravity\scripts\ollama_adapter.py engineer-audit docs/backlog/task/active/REQ-030.md`
+- **API検証**: `python <WORKSPACE_ROOT>\.gemini\antigravity\scripts\openapi_parser.py <WORKSPACE_ROOT>\ws\hogehoge\mhws-vision-server\docs\system\openapi.yaml get-endpoint "/analyze/start/{job_id}" POST`
+- **コード監査**: `python <WORKSPACE_ROOT>\.gemini\antigravity\scripts\ollama_adapter.py engineer-audit docs/backlog/task/active/REQ-030.md`
 - **判定**: エラーや不足の指摘がないこと。
 
 ## 3. ブラウザ検証 (Browser Agent Verification)
@@ -23,4 +23,4 @@
   5. ID: `initiate-analysis-button` をクリック。
 - **判定基準 (Assertion)**: 
   - ブラウザのコンソールログ（または `Network` タブの記録）に、`/analyze/start` へのリクエストペイロードとして `{"analysis_config": {"scroll_pace_seconds": 0.5, "stillness_threshold": 0.02}, ...}` が出力されること。
-- **エビデンス**: `<USER_HOME>\.gemini\antigravity\evidence\REQ-030_api_payload.json` (ブラウザからキャプチャしたリクエストボディ)
+- **エビデンス**: `<WORKSPACE_ROOT>\.gemini\antigravity\evidence\REQ-030_api_payload.json` (ブラウザからキャプチャしたリクエストボディ)
