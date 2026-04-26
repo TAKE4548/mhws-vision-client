@@ -4,6 +4,7 @@ import { type Talisman, useVisionStore } from '../../store/visionStore';
 import { API_HOST } from '../../lib/api-client';
 import { VisionImage } from '../common/VisionImage';
 import type { SkillInfo } from '../../api/generated/model';
+import { WaveformGraph } from './WaveformGraph';
 
 interface Props {
   talisman: Talisman;
@@ -13,6 +14,7 @@ interface Props {
 const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
   const { updateTalisman } = useVisionStore();
   const [edited, setEdited] = useState<Talisman>(talisman);
+  const [showDebug, setShowDebug] = useState(false);
 
   useEffect(() => {
     setEdited(talisman);
@@ -29,30 +31,6 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
     setEdited({ ...edited, skills: newSkills });
   };
 
-  // Mock Waveform Generator for Slot Profile
-  const renderWaveform = (seed: number) => {
-    const points = Array.from({ length: 20 }, (_, i) => ({
-      x: i * 5,
-      y: 10 + Math.sin((i + seed) * 0.8) * 8 + Math.random() * 4
-    }));
-    return (
-      <svg className="w-full h-8 opacity-40" viewBox="0 0 100 20">
-        <polyline
-          fill="none"
-          stroke="url(#neonGradient)"
-          strokeWidth="1"
-          points={points.map(p => `${p.x},${p.y}`).join(' ')}
-        />
-        <defs>
-          <linearGradient id="neonGradient" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#adc6ff" stopOpacity="0" />
-            <stop offset="50%" stopColor="#adc6ff" />
-            <stop offset="100%" stopColor="#adc6ff" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-      </svg>
-    );
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-lowest/95 backdrop-blur-xl animate-in fade-in duration-500">
@@ -66,9 +44,20 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
             </div>
             <p className="font-label-tech text-white/10 uppercase tracking-widest">Vision Core Segment: 0x{talisman.capture_id.slice(0, 8)}</p>
           </div>
-          <button onClick={onClose} className="p-3 text-white/20 hover:text-mhw-danger transition-colors bg-white/5 rounded-tech">
-            <X size={20} />
-          </button>
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setShowDebug(!showDebug)} 
+                className={`flex items-center gap-2 px-4 py-2 rounded-tech font-label-tech text-[10px] uppercase tracking-widest transition-all ${
+                  showDebug ? 'bg-kinetic-amber/20 text-kinetic-amber shadow-[0_0_15px_rgba(255,193,116,0.2)]' : 'bg-white/5 text-white/40 hover:text-white'
+                }`}
+              >
+                <Activity size={14} className={showDebug ? 'animate-pulse' : ''} />
+                <span>Debug {showDebug ? 'ON' : 'OFF'}</span>
+              </button>
+              <button onClick={onClose} className="p-3 text-white/20 hover:text-mhw-danger transition-colors bg-white/5 rounded-tech">
+                <X size={20} />
+              </button>
+            </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-10 flex flex-col lg:flex-row gap-16">
@@ -170,7 +159,21 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
                        <span className={`font-space-tech text-xs font-black ${slot > 0 ? "text-kinetic-blue" : "text-white/5"}`}>{slot > 0 ? `LV${slot}` : 'NULL'}</span>
                     </div>
                     
-                    {renderWaveform(idx * 10)}
+                    {showDebug && (
+                      <div className="h-10 w-full animate-in slide-in-from-top duration-300">
+                        {edited.slots_debug_data?.[idx] ? (
+                          <WaveformGraph 
+                            waveform={edited.slots_debug_data[idx].waveform}
+                            threshold={edited.slots_debug_data[idx].threshold}
+                            className="w-full h-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full opacity-20 bg-white/5 rounded flex items-center justify-center border border-white/5 border-dashed">
+                            <Activity size={12} className="text-white/20" />
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-2 mt-2">
                        <div className="flex flex-col">
@@ -200,16 +203,23 @@ const TalismanDetailsModal: React.FC<Props> = ({ talisman, onClose }) => {
               <div className="space-y-4">
                 {(edited.skills || []).map((skill, idx) => (
                   <div key={idx} className="flex gap-4 items-end group/field bg-white/5 p-4 rounded-tech relative">
-                    <div className="flex-1 space-y-2">
-                       <label className="font-label-tech text-[8px] text-white/10 group-focus-within/field:text-kinetic-amber transition-colors">Skill Identifier {idx + 1}</label>
-                       <input 
-                        type="text"
-                        value={skill.name}
-                        onChange={(e) => updateSkill(idx, 'name', e.target.value)}
-                        className="w-full bg-transparent border-none p-0 text-sm font-manrope text-white focus:ring-0 placeholder:text-white/5"
-                        placeholder="INPUT_SKILL_ID..."
-                      />
-                    </div>
+                     <div className="flex-1 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <label className="font-label-tech text-[8px] text-white/10 group-focus-within/field:text-kinetic-amber transition-colors">Skill Identifier {idx + 1}</label>
+                          {showDebug && skill.crop_b64 && (
+                            <div className="h-6 px-1 bg-black/40 rounded border border-white/10 flex items-center animate-in zoom-in duration-300">
+                              <img src={`data:image/png;base64,${skill.crop_b64}`} alt="skill name crop" className="h-full object-contain filter brightness-125" />
+                            </div>
+                          )}
+                        </div>
+                        <input 
+                         type="text"
+                         value={skill.name}
+                         onChange={(e) => updateSkill(idx, 'name', e.target.value)}
+                         className="w-full bg-transparent border-none p-0 text-sm font-manrope text-white focus:ring-0 placeholder:text-white/5"
+                         placeholder="INPUT_SKILL_ID..."
+                       />
+                     </div>
                     <div className="w-20 space-y-2">
                        <label className="font-label-tech text-[8px] text-white/10 text-center block">Level</label>
                        <input 

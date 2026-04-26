@@ -28,3 +28,4 @@
 | REQ-027 | ROI同期グループの細分化（項目別独立設定） | done | [PBI](docs/backlog/pbi/archive/REQ-027.md) [Task](docs/backlog/task/archive/REQ-027.md) |
 | REQ-028 | 実機サーバ接続時の動画アップロードおよび解析開始プロセスの修正 | done | [PBI](docs/backlog/pbi/archive/REQ-028.md) [Task](docs/backlog/task/archive/REQ-028.md) |
 | REQ-030 | 動的な動画解析感度の調整機能の実装 | done | [PBI](docs/backlog/pbi/archive/REQ-030.md) [Task](docs/backlog/task/completed/REQ-030.md) |
+| REQ-034-FE | 判定根拠の可視化（波形・クロップ） | done | [PBI](docs/backlog/pbi/archive/REQ-034-FE.md) [Task](docs/backlog/task/completed/REQ-034-FE.md) |

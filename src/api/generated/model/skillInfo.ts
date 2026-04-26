@@ -8,6 +8,16 @@
 
 export interface SkillInfo {
   confidence?: number;
+  /**
+   * Base64 encoded crop image of the skill name.
+   * @nullable
+   */
+  crop_b64?: string | null;
   level: number;
+  /**
+   * Base64 encoded crop image of the skill level.
+   * @nullable
+   */
+  lv_crop_b64?: string | null;
   name: string;
 }

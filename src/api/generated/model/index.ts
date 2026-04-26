@@ -45,6 +45,7 @@ export * from './startAnalysisBody';
 export * from './talismanCommonResponse';
 export * from './talismanListCommonResponse';
 export * from './talismanOut';
+export * from './talismanOutSlotsDebugDataItem';
 export * from './talismanUpdate';
 export * from './updateRoiProfile200';
 export * from './updateRoiProfile200Status';

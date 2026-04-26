@@ -131,7 +131,25 @@
 
 ---
 
-## 4. デザインシステムとの整合性  
+## 5. Talisman Details Modal (REQ-034)
+
+### Visual Definition
+- **Debug Toggle**: 右上に配置された「DEBUG OFF/ON」切り替えボタン。ON状態では `kinetic-amber` のグロー効果と `animate-pulse` による心拍アニメーションを付与。
+- **Waveform Graph (Slot Debug)**:
+  - `Polyline`: `kinetic-cyan` によるスキャン波形の描画。
+  - `Threshold Line`: `status-error/40` による判定閾値の水平線。
+  - `Animation`: 出現時に `animate-in fade-in duration-500` を適用。
+- **Crop Accordion (Skill Debug)**:
+  - `Aesthetic Panel`: 各スキル項目の下に展開されるデバッグパネル。
+  - `VisionImage`: 判定に使用された生のクロップ画像を表示。`border-white/5` による繊細な枠線。
+
+### Interaction Logic
+- **Toggle State**: `showDebug` 状態はモーダル内で完結（Component-local state）。閉じるとリセットされる。
+- **Lazy Rendering**: デバッグ情報の波形や画像は `showDebug` が true の場合のみ DOM に追加され、初期ロード時の負荷を軽減する。
+
+---
+
+## 6. デザインシステムとの整合性  
 - **セマンティックカラー**  
   - `kinetic-amber`, `kinetic-blue`, `status-error`の適用範囲を一貫して使用  
 - **フォントスタイル**  

@@ -9,6 +9,8 @@
 export interface AnalysisConfig {
   /** Minimum consecutive frame count duration for analysis (seconds). */
   scroll_pace_seconds?: number;
+  /** Number of frames to skip between analysis checks. */
+  skip_frames?: number;
   /** Threshold for frame difference to detect stillness. */
   stillness_threshold?: number;
 }

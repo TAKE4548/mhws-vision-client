@@ -8,6 +8,7 @@
 import type { ConfidenceValueInt } from './confidenceValueInt';
 import type { SkillInfo } from './skillInfo';
 import type { ConfidenceValueListInt } from './confidenceValueListInt';
+import type { TalismanOutSlotsDebugDataItem } from './talismanOutSlotsDebugDataItem';
 import type { ValidationStatus } from './validationStatus';
 
 export interface TalismanOut {
@@ -26,5 +27,7 @@ export interface TalismanOut {
   rarity: ConfidenceValueInt;
   skills: SkillInfo[];
   slots: ConfidenceValueListInt;
+  /** Debug data for slot recognition (waveforms and thresholds). */
+  slots_debug_data?: TalismanOutSlotsDebugDataItem[];
   validation_status: ValidationStatus;
 }

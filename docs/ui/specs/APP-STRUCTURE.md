@@ -57,6 +57,18 @@
 
 ---
 
+## **Modals & Overlays**
+**動的オーバーレイの構造**
+1. **TalismanDetailsModal**
+   - 護石詳細・判定結果の検証用モーダル。
+   - **構成要素**:
+     - `VisionImage`: 高精度クロップ画像の表示。
+     - `WaveformGraph`: スロット判定用スキャンデータの可視化。
+   - **状態管理**:
+     - `showDebug`: デバッグ情報の表示・非表示。
+
+---
+
 ## **Global Rules**  
 **アプリ全体の共通ルール**  
 1. **デザインシステム: Kinetic Observatory**  
